@@ -9,6 +9,7 @@ import { ResetAdminPasswordForm } from "@/components/super-admin/reset-admin-pas
 import { DeleteOrgForm } from "@/components/super-admin/delete-org-form";
 import { RestoreOrgForm } from "@/components/super-admin/restore-org-form";
 import { PurgeOrgForm } from "@/components/super-admin/purge-org-form";
+import { ActionChipLink } from "@/components/super-admin/action-chip-link";
 import { requireSession } from "@/lib/auth/guards";
 import { getSuperAdminSnapshot } from "@/lib/services/dashboard-service";
 
@@ -184,58 +185,65 @@ export default async function SuperAdminPage() {
                   <div className="mt-3 space-y-3">
                     {group.services.map((service) => (
                       <div key={service.publicId} className="rounded-[16px] border border-black/10 bg-white p-3 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
-                        <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex flex-wrap items-start justify-between gap-3">
                           <div>
                             <p className="text-sm font-medium text-slate-900">{service.name}</p>
                             <p className="text-xs text-slate-500">{service.category} · {service.ratingType}</p>
                           </div>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <Link
-                              href={`/r/${group.organizationPublicId}/${service.publicId}`}
-                              target="_blank"
-                              className="rounded-full border border-black/10 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 active:scale-[0.98] active:translate-y-px"
-                            >
-                              Review link
-                            </Link>
-                            <Link
-                              href={`/qr/${group.organizationPublicId}/${service.publicId}/a6`}
-                              target="_blank"
-                              className="rounded-full border border-teal-200 bg-teal-50 px-3 py-1.5 text-xs font-semibold text-teal-900 transition hover:bg-teal-100 active:scale-[0.98] active:translate-y-px"
-                            >
-                              A6
-                            </Link>
-                            <Link
-                              href={`/qr/${group.organizationPublicId}/${service.publicId}/a4`}
-                              target="_blank"
-                              className="rounded-full border border-teal-200 bg-teal-50 px-3 py-1.5 text-xs font-semibold text-teal-900 transition hover:bg-teal-100 active:scale-[0.98] active:translate-y-px"
-                            >
-                              A4 (4x)
-                            </Link>
-                            <Link
-                              href={`/qr/${group.organizationPublicId}/${service.publicId}/a3`}
-                              target="_blank"
-                              className="rounded-full border border-teal-200 bg-teal-50 px-3 py-1.5 text-xs font-semibold text-teal-900 transition hover:bg-teal-100 active:scale-[0.98] active:translate-y-px"
-                            >
-                              A3 (8x)
-                            </Link>
-                            <Link
-                              href={`/api/super-admin/qr-pdf/${group.organizationPublicId}/${service.publicId}?size=a6`}
-                              className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-900 transition hover:bg-amber-100 active:scale-[0.98] active:translate-y-px"
-                            >
-                              PDF A6
-                            </Link>
-                            <Link
-                              href={`/api/super-admin/qr-pdf/${group.organizationPublicId}/${service.publicId}?size=a4`}
-                              className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-900 transition hover:bg-amber-100 active:scale-[0.98] active:translate-y-px"
-                            >
-                              PDF A4
-                            </Link>
-                            <Link
-                              href={`/api/super-admin/qr-pdf/${group.organizationPublicId}/${service.publicId}?size=a3`}
-                              className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-900 transition hover:bg-amber-100 active:scale-[0.98] active:translate-y-px"
-                            >
-                              PDF A3
-                            </Link>
+                          <div className="space-y-2">
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">Open links</p>
+                            <div className="flex flex-wrap gap-2">
+                              <ActionChipLink
+                                href={`/r/${group.organizationPublicId}/${service.publicId}`}
+                                icon="external"
+                                label="Review"
+                                target="_blank"
+                                tone="neutral"
+                              />
+                              <ActionChipLink
+                                href={`/qr/${group.organizationPublicId}/${service.publicId}/a6`}
+                                icon="sheet"
+                                label="A6"
+                                target="_blank"
+                                tone="print"
+                              />
+                              <ActionChipLink
+                                href={`/qr/${group.organizationPublicId}/${service.publicId}/a4`}
+                                icon="sheet"
+                                label="A4 4x"
+                                target="_blank"
+                                tone="print"
+                              />
+                              <ActionChipLink
+                                href={`/qr/${group.organizationPublicId}/${service.publicId}/a3`}
+                                icon="sheet"
+                                label="A3 8x"
+                                target="_blank"
+                                tone="print"
+                              />
+                            </div>
+
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">Download PDF</p>
+                            <div className="flex flex-wrap gap-2">
+                              <ActionChipLink
+                                href={`/api/super-admin/qr-pdf/${group.organizationPublicId}/${service.publicId}?size=a6`}
+                                icon="pdf"
+                                label="A6 PDF"
+                                tone="pdf"
+                              />
+                              <ActionChipLink
+                                href={`/api/super-admin/qr-pdf/${group.organizationPublicId}/${service.publicId}?size=a4`}
+                                icon="pdf"
+                                label="A4 PDF"
+                                tone="pdf"
+                              />
+                              <ActionChipLink
+                                href={`/api/super-admin/qr-pdf/${group.organizationPublicId}/${service.publicId}?size=a3`}
+                                icon="pdf"
+                                label="A3 PDF"
+                                tone="pdf"
+                              />
+                            </div>
                           </div>
                         </div>
                       </div>
