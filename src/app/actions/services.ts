@@ -90,4 +90,5 @@ export async function createServiceAction(formData: FormData) {
   });
 
   revalidateTag("dashboard-snapshot", {});
+  revalidateTag("super-admin-snapshot", {});
 }

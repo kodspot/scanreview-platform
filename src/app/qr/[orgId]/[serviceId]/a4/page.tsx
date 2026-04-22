@@ -64,6 +64,24 @@ export default async function QrA4Page({
             flex-direction: column;
             justify-content: space-between;
             overflow: hidden;
+            box-shadow: inset 0 0 0 0.3mm rgba(15, 23, 42, 0.08);
+          }
+          .meta-row {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+          }
+          .badge {
+            font-family: system-ui, -apple-system, sans-serif;
+            font-size: 7px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            border-radius: 999px;
+            border: 1px solid ${accent};
+            color: ${accent};
+            padding: 1px 6px;
+            white-space: nowrap;
           }
           .org-name {
             font-family: system-ui, -apple-system, sans-serif;
@@ -122,6 +140,9 @@ export default async function QrA4Page({
           {tiles.map((_, i) => (
             <div key={i} className="tile">
               <div>
+                <div className="meta-row">
+                  <span className="badge">Scan & Review</span>
+                </div>
                 <div className="org-name">{orgName}</div>
                 <div className="service-name">{serviceName}</div>
                 <div className="prompt">Scan & share feedback in under 10 seconds.</div>

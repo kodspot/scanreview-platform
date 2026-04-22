@@ -17,18 +17,28 @@ export function QrPoster({
   primaryColor,
   accentColor,
 }: QrPosterProps) {
+  const compactUrl = targetUrl.length > 46 ? `${targetUrl.slice(0, 43)}...` : targetUrl;
+
   return (
     <div
       className="mx-auto flex w-[105mm] min-h-[148mm] flex-col justify-between overflow-hidden rounded-[22px] bg-white p-[8mm] text-slate-950 shadow-[0_30px_100px_rgba(15,23,42,0.18)] print:shadow-none print:rounded-none"
       style={{ borderTop: `7mm solid ${primaryColor}` }}
     >
       <div>
-        <span
-          className="inline-flex rounded-full px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.18em]"
-          style={{ backgroundColor: `${primaryColor}18`, color: primaryColor }}
-        >
-          Smart Feedback Card
-        </span>
+        <div className="flex flex-wrap items-center gap-2">
+          <span
+            className="inline-flex rounded-full px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.18em]"
+            style={{ backgroundColor: `${primaryColor}18`, color: primaryColor }}
+          >
+            Smart Feedback Card
+          </span>
+          <span
+            className="inline-flex rounded-full border px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.16em]"
+            style={{ borderColor: `${accentColor}66`, color: accentColor }}
+          >
+            Instant Review
+          </span>
+        </div>
         <h1
           className="mt-2 text-[26px] font-bold leading-tight"
           style={{ color: primaryColor }}
@@ -53,7 +63,7 @@ export function QrPoster({
           unoptimized
           width={900}
         />
-        <p className="mt-3 text-center text-[11px] break-all text-slate-400">{targetUrl}</p>
+        <p className="mt-3 text-center text-[11px] break-all text-slate-400">{compactUrl}</p>
       </div>
 
       <div
