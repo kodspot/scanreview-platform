@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { InstallPwaButton } from "@/components/pwa/install-button";
 
 export default function Home() {
   return (
@@ -22,6 +23,7 @@ export default function Home() {
             <Link className="rounded-full border border-black/10 bg-white px-6 py-4 text-sm font-semibold transition hover:bg-slate-50 active:scale-[0.98] active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300" href="/r/org_demo001/svc_airport-express">
               Open Demo Review Flow
             </Link>
+            <InstallPwaButton />
           </div>
         </header>
 
