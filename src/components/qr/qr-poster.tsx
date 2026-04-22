@@ -22,10 +22,15 @@ export function QrPoster({
       className="mx-auto flex w-[105mm] min-h-[148mm] flex-col justify-between overflow-hidden rounded-[22px] bg-white p-[8mm] text-slate-950 shadow-[0_30px_100px_rgba(15,23,42,0.18)] print:shadow-none print:rounded-none"
       style={{ borderTop: `7mm solid ${primaryColor}` }}
     >
-      {/* Header — org name is the big headline */}
       <div>
+        <span
+          className="inline-flex rounded-full px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.18em]"
+          style={{ backgroundColor: `${primaryColor}18`, color: primaryColor }}
+        >
+          Smart Feedback Card
+        </span>
         <h1
-          className="text-[26px] font-bold leading-tight"
+          className="mt-2 text-[26px] font-bold leading-tight"
           style={{ color: primaryColor }}
         >
           {organizationName}
@@ -36,7 +41,6 @@ export function QrPoster({
         </p>
       </div>
 
-      {/* QR code */}
       <div
         className="mt-6 rounded-[18px] p-4"
         style={{ background: `linear-gradient(180deg, ${primaryColor}14 0%, #ffffff 100%)` }}
@@ -52,7 +56,6 @@ export function QrPoster({
         <p className="mt-3 text-center text-[11px] break-all text-slate-400">{targetUrl}</p>
       </div>
 
-      {/* Footer — company branding small */}
       <div
         className="mt-5 flex items-center justify-between pt-4 text-[10px] text-slate-400"
         style={{ borderTop: `2px solid ${accentColor}` }}

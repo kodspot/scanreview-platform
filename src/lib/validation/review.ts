@@ -12,6 +12,11 @@ export const reviewSubmissionSchema = z.object({
   answers: z.array(reviewAnswerSchema).default([]),
   locale: z.string().trim().max(20).optional(),
   fingerprint: z.string().trim().max(128).optional(),
+  reviewer: z.object({
+    name: z.string().trim().max(80).optional(),
+    email: z.email().max(120).optional(),
+    phone: z.string().trim().max(24).optional(),
+  }).optional(),
 });
 
 export type ReviewSubmissionInput = z.infer<typeof reviewSubmissionSchema>;

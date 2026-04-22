@@ -4,7 +4,7 @@ import { revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { ObjectId } from "mongodb";
 import { getSessionUser } from "@/lib/auth/session";
-import { findOrganizationById } from "@/lib/repositories/organizations";
+import { findOrganizationById, incrementOrganizationUsage } from "@/lib/repositories/organizations";
 import { getCollection } from "@/lib/db/mongodb";
 import { createPublicId, toSlug } from "@/lib/utils";
 import { env } from "@/lib/env";
@@ -83,6 +83,11 @@ export async function createServiceAction(formData: FormData) {
 
   const qrCodes = await getCollection<QrCodeAsset>("qr_codes");
   await qrCodes.insertOne(qrAsset as QrCodeAsset);
+
+  await incrementOrganizationUsage(orgObjectId, {
+    serviceCount: 1,
+    qrCount: 1,
+  });
 
   revalidateTag("dashboard-snapshot", {});
 }

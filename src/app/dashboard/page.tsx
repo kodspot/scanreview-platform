@@ -74,6 +74,14 @@ export default async function DashboardPage() {
                       ))}
                     </div>
                   ) : null}
+                  {review.reviewer?.name || review.reviewer?.email || review.reviewer?.phone ? (
+                    <div className="mt-3 rounded-[14px] border border-black/10 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                      <p className="font-medium uppercase tracking-[0.12em] text-slate-500">Reviewer details</p>
+                      {review.reviewer?.name ? <p className="mt-1">Name: {review.reviewer.name}</p> : null}
+                      {review.reviewer?.email ? <p>Email: {review.reviewer.email}</p> : null}
+                      {review.reviewer?.phone ? <p>Phone: {review.reviewer.phone}</p> : null}
+                    </div>
+                  ) : null}
                   <div className="mt-3 border-t border-black/5 pt-3 text-xs text-slate-500">
                     Captured {review.submittedAt}
                   </div>

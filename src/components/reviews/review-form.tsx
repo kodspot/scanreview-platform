@@ -96,6 +96,9 @@ export function ReviewForm({
 }: ReviewFormProps) {
   const [ratingValue, setRatingValue] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string | boolean>>({});
+  const [reviewerName, setReviewerName] = useState("");
+  const [reviewerEmail, setReviewerEmail] = useState("");
+  const [reviewerPhone, setReviewerPhone] = useState("");
   const [submission, setSubmission] = useState<SubmissionState>({ status: "idle" });
 
   const questions = useMemo(() => {
@@ -122,6 +125,11 @@ export function ReviewForm({
           ratingValue,
           locale: navigator.language,
           fingerprint: window.navigator.userAgent.slice(0, 120),
+          reviewer: {
+            name: reviewerName.trim() || undefined,
+            email: reviewerEmail.trim() || undefined,
+            phone: reviewerPhone.trim() || undefined,
+          },
           answers: Object.entries(answers).map(([questionId, value]) => ({ questionId, value })),
         }),
       });
@@ -161,11 +169,13 @@ export function ReviewForm({
       onSubmit={handleSubmit}
       style={{ backgroundColor: theme.surface, color: theme.text }}
     >
-      <p className="text-xs uppercase tracking-[0.28em] text-slate-500">{organizationName}</p>
-      <h1 className="mt-3 text-3xl font-semibold text-slate-950">{reviewConfig.promptTitle}</h1>
-      <p className="mt-3 text-base text-slate-600">{serviceName}: {reviewConfig.promptDescription}</p>
+      <div className="rounded-[24px] border border-black/10 bg-white/80 p-5">
+        <p className="text-xs uppercase tracking-[0.28em] text-slate-500">{organizationName}</p>
+        <h1 className="mt-3 text-3xl font-semibold text-slate-950">{reviewConfig.promptTitle}</h1>
+        <p className="mt-2 text-base text-slate-600">{serviceName}: {reviewConfig.promptDescription}</p>
+      </div>
 
-      <div className="mt-8 space-y-6">
+      <div className="mt-6 space-y-6">
         <div>
           <p className="mb-3 text-sm font-medium uppercase tracking-[0.22em] text-slate-500">Your rating</p>
           <RatingInput
@@ -189,6 +199,43 @@ export function ReviewForm({
             value={answers[question.id]}
           />
         ))}
+
+        <div className="rounded-[22px] border border-black/10 bg-white p-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Optional contact details</p>
+          <p className="mt-1 text-xs text-slate-500">Share if you want the team to follow up with you.</p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <label className="block text-sm text-slate-700 sm:col-span-2">
+              <span className="mb-1.5 block">Your name (optional)</span>
+              <input
+                className="w-full rounded-[14px] border border-black/10 bg-white px-3 py-2.5 outline-none transition focus:border-slate-900"
+                onChange={(event) => setReviewerName(event.target.value)}
+                placeholder="Jane Smith"
+                type="text"
+                value={reviewerName}
+              />
+            </label>
+            <label className="block text-sm text-slate-700">
+              <span className="mb-1.5 block">Email (optional)</span>
+              <input
+                className="w-full rounded-[14px] border border-black/10 bg-white px-3 py-2.5 outline-none transition focus:border-slate-900"
+                onChange={(event) => setReviewerEmail(event.target.value)}
+                placeholder="name@email.com"
+                type="email"
+                value={reviewerEmail}
+              />
+            </label>
+            <label className="block text-sm text-slate-700">
+              <span className="mb-1.5 block">Phone (optional)</span>
+              <input
+                className="w-full rounded-[14px] border border-black/10 bg-white px-3 py-2.5 outline-none transition focus:border-slate-900"
+                onChange={(event) => setReviewerPhone(event.target.value)}
+                placeholder="+91 98XXXXXX12"
+                type="text"
+                value={reviewerPhone}
+              />
+            </label>
+          </div>
+        </div>
       </div>
 
       {submission.status === "error" ? (
@@ -196,7 +243,7 @@ export function ReviewForm({
       ) : null}
 
       <button
-        className="mt-8 w-full rounded-full px-5 py-4 text-sm font-semibold text-white shadow-[0_16px_40px_rgba(15,23,42,0.22)] disabled:opacity-50"
+        className="mt-8 w-full rounded-full px-5 py-4 text-sm font-semibold text-white shadow-[0_16px_40px_rgba(15,23,42,0.22)] transition hover:brightness-110 active:scale-[0.99] disabled:opacity-50"
         disabled={ratingValue === 0 || submission.status === "submitting"}
         style={{ backgroundColor: theme.primary }}
         type="submit"

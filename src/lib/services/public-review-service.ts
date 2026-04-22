@@ -117,6 +117,11 @@ export async function submitPublicReview(
       source: "qr",
       deviceFingerprint: parsedInput.fingerprint,
       ipHash: metadata.ip ? hashValue(metadata.ip) : undefined,
+      profile: {
+        name: parsedInput.reviewer?.name,
+        email: parsedInput.reviewer?.email,
+        phone: parsedInput.reviewer?.phone,
+      },
     },
     flags: {
       requiresAttention: parsedInput.ratingValue <= reviewConfig.lowRatingThreshold,

@@ -24,3 +24,13 @@ export async function findQrCodeByService(serviceId: ObjectId) {
   const collection = await getQrCodesCollection();
   return collection.findOne({ serviceId });
 }
+
+export async function deleteServicesAndQrByOrganization(organizationId: ObjectId) {
+  const serviceCollection = await getServicesCollection();
+  const qrCollection = await getQrCodesCollection();
+
+  await Promise.all([
+    serviceCollection.deleteMany({ organizationId }),
+    qrCollection.deleteMany({ organizationId }),
+  ]);
+}

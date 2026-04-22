@@ -133,6 +133,11 @@ export interface Review {
     source: "qr";
     deviceFingerprint?: string;
     ipHash?: string;
+    profile?: {
+      name?: string;
+      email?: string;
+      phone?: string;
+    };
   };
   flags: {
     requiresAttention: boolean;

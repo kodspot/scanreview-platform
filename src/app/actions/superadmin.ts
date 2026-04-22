@@ -6,8 +6,19 @@ import { ObjectId } from "mongodb";
 import { getSessionUser } from "@/lib/auth/session";
 import { createTenant } from "@/lib/services/organization-service";
 import { getCollection } from "@/lib/db/mongodb";
-import { findOrganizationByPublicId } from "@/lib/repositories/organizations";
-import { createUser } from "@/lib/repositories/users";
+import {
+  deleteOrganizationById,
+  findOrganizationByPublicId,
+  incrementOrganizationUsage,
+} from "@/lib/repositories/organizations";
+import {
+  createUser,
+  deleteUsersByOrganization,
+  findOrgAdminByEmail,
+  updateUserPassword,
+} from "@/lib/repositories/users";
+import { deleteReviewsByOrganization } from "@/lib/repositories/reviews";
+import { deleteServicesAndQrByOrganization } from "@/lib/repositories/services";
 import { hashPassword } from "@/lib/auth/password";
 import { env } from "@/lib/env";
 import { createPublicId, toSlug } from "@/lib/utils";
@@ -120,6 +131,59 @@ export async function createServiceForOrgAction(formData: FormData) {
 
   const qrCodes = await getCollection<QrCodeAsset>("qr_codes");
   await qrCodes.insertOne(qrAsset as QrCodeAsset);
+
+  await incrementOrganizationUsage(organization._id, {
+    serviceCount: 1,
+    qrCount: 1,
+  });
+
+  revalidateTag("super-admin-snapshot", {});
+  revalidateTag("dashboard-snapshot", {});
+}
+
+export async function resetOrgAdminPasswordAction(formData: FormData) {
+  await requireSuperAdmin();
+
+  const orgPublicId = (formData.get("orgPublicId") as string | null)?.trim();
+  const email = (formData.get("email") as string | null)?.trim().toLowerCase();
+  const password = (formData.get("password") as string | null)?.trim();
+
+  if (!orgPublicId || !email || !password || password.length < 8) {
+    return;
+  }
+
+  const organization = await findOrganizationByPublicId(orgPublicId);
+  if (!organization?._id) return;
+
+  const adminUser = await findOrgAdminByEmail(organization._id, email);
+  if (!adminUser?._id) return;
+
+  const passwordHash = await hashPassword(password);
+  await updateUserPassword(adminUser._id as ObjectId, passwordHash);
+
+  revalidateTag("super-admin-snapshot", {});
+}
+
+export async function deleteOrganizationAction(formData: FormData) {
+  await requireSuperAdmin();
+
+  const orgPublicId = (formData.get("orgPublicId") as string | null)?.trim();
+  const confirmPublicId = (formData.get("confirmPublicId") as string | null)?.trim();
+
+  if (!orgPublicId || !confirmPublicId || orgPublicId !== confirmPublicId) {
+    return;
+  }
+
+  const organization = await findOrganizationByPublicId(orgPublicId);
+  if (!organization?._id) return;
+
+  await Promise.all([
+    deleteReviewsByOrganization(organization._id),
+    deleteServicesAndQrByOrganization(organization._id),
+    deleteUsersByOrganization(organization._id),
+  ]);
+
+  await deleteOrganizationById(organization._id);
 
   revalidateTag("super-admin-snapshot", {});
   revalidateTag("dashboard-snapshot", {});

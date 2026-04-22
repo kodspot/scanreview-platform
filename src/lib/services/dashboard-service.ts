@@ -4,6 +4,7 @@ import { formatDistanceToNow } from "date-fns";
 import { findOrganizationById, listOrganizations } from "@/lib/repositories/organizations";
 import { aggregateDashboardMetrics, listRecentReviewsByOrganization } from "@/lib/repositories/reviews";
 import { listServicesByOrganization } from "@/lib/repositories/services";
+import { findUsersByOrganization } from "@/lib/repositories/users";
 import type { DashboardFilters } from "@/lib/types";
 
 export const getDashboardSnapshot = unstable_cache(
@@ -27,6 +28,7 @@ export const getDashboardSnapshot = unstable_cache(
         submittedAt: formatDistanceToNow(review.submittedAt, { addSuffix: true }),
         requiresAttention: review.flags.requiresAttention,
         answers: review.answers,
+        reviewer: review.customer.profile,
       })),
     };
   },
@@ -39,10 +41,22 @@ export const getSuperAdminSnapshot = unstable_cache(
     const organizations = await listOrganizations();
     const organizationServices = await Promise.all(
       organizations.map(async (organization) => {
-        const services = await listServicesByOrganization(organization._id as ObjectId);
+        const [services, users] = await Promise.all([
+          listServicesByOrganization(organization._id as ObjectId),
+          findUsersByOrganization(organization._id as ObjectId),
+        ]);
         return {
           organizationPublicId: organization.publicId,
           organizationName: organization.name,
+          admins: users
+            .filter((user) => user.role === "org_admin" || user.role === "org_manager")
+            .map((user) => ({
+              id: user._id?.toString() || "",
+              name: user.name,
+              email: user.email,
+              role: user.role,
+              status: user.status,
+            })),
           services: services.map((service) => ({
             publicId: service.publicId,
             name: service.name,

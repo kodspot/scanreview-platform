@@ -5,6 +5,8 @@ import { SectionCard } from "@/components/ui/section-card";
 import { CreateOrgForm } from "@/components/super-admin/create-org-form";
 import { CreateAdminForm } from "@/components/super-admin/create-admin-form";
 import { CreateServiceForOrgForm } from "@/components/super-admin/create-service-form";
+import { ResetAdminPasswordForm } from "@/components/super-admin/reset-admin-password-form";
+import { DeleteOrgForm } from "@/components/super-admin/delete-org-form";
 import { requireSession } from "@/lib/auth/guards";
 import { getSuperAdminSnapshot } from "@/lib/services/dashboard-service";
 
@@ -75,6 +77,7 @@ export default async function SuperAdminPage() {
                             orgName={organization.name}
                           />
                           <CreateServiceForOrgForm orgPublicId={organization.publicId} orgName={organization.name} />
+                          <DeleteOrgForm orgName={organization.name} orgPublicId={organization.publicId} />
                         </div>
                       </td>
                     </tr>
@@ -83,6 +86,43 @@ export default async function SuperAdminPage() {
               </table>
             </div>
           )}
+        </SectionCard>
+      </div>
+
+      <div className="mt-6">
+        <SectionCard
+          description="Reset organization admin credentials without exposing users to self-service password reset yet."
+          title="Admin Credentials"
+        >
+          <div className="space-y-4">
+            {snapshot.organizationServices.map((group) => (
+              <div key={`${group.organizationPublicId}-admins`} className="rounded-[20px] border border-black/10 bg-slate-50 p-4">
+                <p className="text-sm font-semibold text-slate-950">{group.organizationName}</p>
+                <p className="mt-0.5 text-xs uppercase tracking-[0.15em] text-slate-400">{group.organizationPublicId}</p>
+                <div className="mt-3 space-y-2">
+                  {group.admins.length === 0 ? (
+                    <p className="text-xs text-slate-500">No admins assigned yet.</p>
+                  ) : (
+                    group.admins.map((admin) => (
+                      <div key={admin.id} className="rounded-[14px] border border-black/10 bg-white p-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div>
+                            <p className="text-sm font-medium text-slate-900">{admin.name}</p>
+                            <p className="text-xs text-slate-500">{admin.email} · {admin.role}</p>
+                          </div>
+                          <ResetAdminPasswordForm
+                            adminEmail={admin.email}
+                            adminName={admin.name}
+                            orgPublicId={group.organizationPublicId}
+                          />
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
         </SectionCard>
       </div>
 
@@ -136,6 +176,24 @@ export default async function SuperAdminPage() {
                               className="rounded-full border border-black/10 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50 active:scale-[0.98] active:translate-y-px"
                             >
                               A3 (8x)
+                            </Link>
+                            <Link
+                              href={`/api/super-admin/qr-pdf/${group.organizationPublicId}/${service.publicId}?size=a6`}
+                              className="rounded-full border border-black/10 bg-slate-950 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-800 active:scale-[0.98] active:translate-y-px"
+                            >
+                              PDF A6
+                            </Link>
+                            <Link
+                              href={`/api/super-admin/qr-pdf/${group.organizationPublicId}/${service.publicId}?size=a4`}
+                              className="rounded-full border border-black/10 bg-slate-950 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-800 active:scale-[0.98] active:translate-y-px"
+                            >
+                              PDF A4
+                            </Link>
+                            <Link
+                              href={`/api/super-admin/qr-pdf/${group.organizationPublicId}/${service.publicId}?size=a3`}
+                              className="rounded-full border border-black/10 bg-slate-950 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-800 active:scale-[0.98] active:translate-y-px"
+                            >
+                              PDF A3
                             </Link>
                           </div>
                         </div>

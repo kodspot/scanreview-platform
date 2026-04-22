@@ -12,6 +12,11 @@ export async function createReview(review: Review) {
   return review;
 }
 
+export async function deleteReviewsByOrganization(organizationId: ObjectId) {
+  const collection = await getReviewsCollection();
+  return collection.deleteMany({ organizationId });
+}
+
 export async function listRecentReviewsByOrganization(
   organizationId: ObjectId,
   filters: DashboardFilters,

@@ -27,6 +27,11 @@ export async function createOrganization(organization: Organization) {
   return organization;
 }
 
+export async function deleteOrganizationById(organizationId: ObjectId) {
+  const collection = await getOrganizationsCollection();
+  return collection.deleteOne({ _id: organizationId });
+}
+
 export async function incrementOrganizationUsage(
   organizationId: ObjectId,
   patch: Partial<Organization["usage"]>,
