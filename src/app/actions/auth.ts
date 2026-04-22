@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { authenticateUser } from "@/lib/services/auth-service";
+import { authenticateUser, authenticateSuperAdminByKey } from "@/lib/services/auth-service";
 import { clearSessionCookie, setSessionCookie, signSession } from "@/lib/auth/session";
 import { loginSchema } from "@/lib/validation/auth";
 
@@ -25,6 +25,25 @@ export async function loginAction(formData: FormData) {
   await setSessionCookie(token);
 
   redirect(sessionUser.role === "super_admin" ? "/super-admin" : "/dashboard");
+}
+
+export async function adminKeyLoginAction(formData: FormData) {
+  const adminKey = formData.get("admin_key") as string;
+
+  if (!adminKey || !adminKey.trim()) {
+    redirect("/login?error=invalid_input");
+  }
+
+  const sessionUser = await authenticateSuperAdminByKey(adminKey.trim());
+
+  if (!sessionUser) {
+    redirect("/login?error=invalid_credentials");
+  }
+
+  const token = await signSession(sessionUser);
+  await setSessionCookie(token);
+
+  redirect("/super-admin");
 }
 
 export async function logoutAction() {

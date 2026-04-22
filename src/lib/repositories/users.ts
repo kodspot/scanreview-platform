@@ -11,6 +11,17 @@ export async function findUserByEmail(email: string) {
   return collection.findOne({ email: email.toLowerCase() });
 }
 
+export async function findUsersByOrganization(organizationId: ObjectId) {
+  const collection = await getUsersCollection();
+  return collection.find({ organizationId }).sort({ createdAt: -1 }).toArray();
+}
+
+export async function createUser(user: Omit<User, "_id">) {
+  const collection = await getUsersCollection();
+  const result = await collection.insertOne({ ...user, email: user.email.toLowerCase() });
+  return result.insertedId;
+}
+
 export async function updateUserLastLogin(userId: ObjectId) {
   const collection = await getUsersCollection();
 

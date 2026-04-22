@@ -15,4 +15,5 @@ export const env = {
   mongodbDb: process.env.MONGODB_DB || "scanreview",
   appUrl: process.env.APP_URL || "http://localhost:3000",
   authSecret: process.env.AUTH_SECRET,
+  adminKey: process.env.ADMIN_KEY,
 };
