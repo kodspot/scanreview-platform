@@ -194,16 +194,16 @@ export async function GET(
       }
     }
   } else if (size === "a3") {
-    const page = pdf.addPage([mm(297), mm(420)]);
+    const page = pdf.addPage([mm(420), mm(297)]);
     const gap = mm(5);
     const pad = mm(5);
-    const tileW = (mm(297) - pad * 2 - gap) / 2;
-    const tileH = (mm(420) - pad * 2 - gap * 3) / 4;
+    const tileW = (mm(420) - pad * 2 - gap * 3) / 4;
+    const tileH = (mm(297) - pad * 2 - gap) / 2;
 
-    for (let row = 0; row < 4; row += 1) {
-      for (let col = 0; col < 2; col += 1) {
+    for (let row = 0; row < 2; row += 1) {
+      for (let col = 0; col < 4; col += 1) {
         const x = pad + col * (tileW + gap);
-        const y = mm(420) - pad - (row + 1) * tileH - row * gap;
+        const y = mm(297) - pad - (row + 1) * tileH - row * gap;
         drawTile(page, {
           x,
           y,

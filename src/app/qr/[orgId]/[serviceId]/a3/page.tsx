@@ -2,9 +2,8 @@ import { notFound } from "next/navigation";
 import QRCode from "qrcode";
 import { getPublicReviewExperience } from "@/lib/services/public-review-service";
 
-// A3 page: 297mm × 420mm — 2 columns × 4 rows = 8 A6 tiles
-// Each tile: (297 - 3×5mm) / 2 = 141mm wide, (420 - 5×5mm) / 4 = 98.75mm tall
-// Posters scale proportionally to fill cells
+// A3 landscape page: 420mm × 297mm — 4 columns × 2 rows = 8 A6 tiles
+// Each tile: (420 - 5×5mm) / 4 = 98.75mm wide, (297 - 3×5mm) / 2 = 141mm tall
 
 export default async function QrA3Page({
   params,
@@ -42,82 +41,78 @@ export default async function QrA3Page({
         <title>{orgName} — QR Print Sheet (A3)</title>
         <style>{`
           * { box-sizing: border-box; margin: 0; padding: 0; }
-          @page { size: A3 portrait; margin: 0; }
-          body { width: 297mm; height: 420mm; background: #fff; }
+          @page { size: A3 landscape; margin: 0; }
+          body { width: 420mm; height: 297mm; background: #fff; }
           .grid {
             display: grid;
-            grid-template-columns: repeat(2, 141mm);
-            grid-template-rows: repeat(4, 98.75mm);
+            grid-template-columns: repeat(4, 98.75mm);
+            grid-template-rows: repeat(2, 141mm);
             gap: 5mm;
             padding: 5mm;
-            width: 297mm;
-            height: 420mm;
+            width: 420mm;
+            height: 297mm;
           }
           .tile {
-            width: 141mm;
-            height: 98.75mm;
-            border-top: 5mm solid ${primary};
+            width: 98.75mm;
+            height: 141mm;
+            border-top: 6mm solid ${primary};
             border-bottom: 2px solid ${accent};
             background: #fff;
-            border-radius: 10px;
-            padding: 5mm;
+            border-radius: 12px;
+            padding: 6mm;
             display: flex;
-            flex-direction: row;
-            align-items: center;
-            gap: 5mm;
+            flex-direction: column;
+            justify-content: space-between;
             overflow: hidden;
-          }
-          .info {
-            flex: 1;
-            min-width: 0;
           }
           .org-name {
             font-family: system-ui, -apple-system, sans-serif;
-            font-size: 16px;
+            font-size: 18px;
             font-weight: 700;
             color: ${primary};
             line-height: 1.2;
           }
           .service-name {
             font-family: system-ui, -apple-system, sans-serif;
-            font-size: 10px;
+            font-size: 11px;
             font-weight: 600;
             color: #334155;
             margin-top: 3px;
           }
           .prompt {
             font-family: system-ui, -apple-system, sans-serif;
-            font-size: 9px;
+            font-size: 10px;
             color: #64748b;
-            margin-top: 5px;
+            margin-top: 6px;
             line-height: 1.5;
           }
           .footer {
             font-family: system-ui, -apple-system, sans-serif;
-            font-size: 7.5px;
+            font-size: 8px;
             color: #94a3b8;
-            margin-top: 8px;
+            display: flex;
+            justify-content: space-between;
+            margin-top: 6px;
           }
           .url {
             font-family: system-ui, -apple-system, sans-serif;
-            font-size: 7.5px;
+            font-size: 8px;
             color: #94a3b8;
             word-break: break-all;
-            margin-top: 3px;
+            margin-top: 4px;
           }
           .qr-wrap {
-            background: linear-gradient(135deg, ${primary}18 0%, #ffffff 100%);
+            background: linear-gradient(180deg, ${primary}18 0%, #ffffff 100%);
             border-radius: 10px;
-            padding: 6px;
+            padding: 8px;
             text-align: center;
-            flex-shrink: 0;
           }
           .qr-img {
-            width: 42mm;
-            height: 42mm;
-            border-radius: 6px;
+            width: 52mm;
+            height: 52mm;
+            border-radius: 8px;
             background: #fff;
-            padding: 3px;
+            padding: 4px;
           }
         `}</style>
       </head>
@@ -125,16 +120,19 @@ export default async function QrA3Page({
         <div className="grid">
           {tiles.map((_, i) => (
             <div key={i} className="tile">
-              <div className="info">
+              <div>
                 <div className="org-name">{orgName}</div>
                 <div className="service-name">{serviceName}</div>
                 <div className="prompt">Scan & share feedback in under 10 seconds.</div>
-                <div className="url">{targetUrl}</div>
-                <div className="footer">Kodspot ScanReview · 300 DPI</div>
               </div>
               <div className="qr-wrap">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img alt="QR code" className="qr-img" src={qrDataUrl} />
+                <div className="url">{targetUrl}</div>
+              </div>
+              <div className="footer">
+                <span>Kodspot ScanReview</span>
+                <span>300 DPI · A3 sheet</span>
               </div>
             </div>
           ))}

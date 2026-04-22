@@ -167,65 +167,72 @@ export default async function SuperAdminPage() {
         >
           <div className="space-y-4">
             {snapshot.organizationServices.map((group) => (
-              <div key={group.organizationPublicId} className="rounded-[22px] border border-black/10 bg-slate-50 p-4">
-                <p className="text-sm font-semibold text-slate-950">{group.organizationName}</p>
-                <p className="mt-0.5 text-xs uppercase tracking-[0.15em] text-slate-400">{group.organizationPublicId}</p>
+              <div key={group.organizationPublicId} className="rounded-[22px] border border-black/10 bg-[linear-gradient(180deg,#f8fafc_0%,#f5f7fb_100%)] p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-950">{group.organizationName}</p>
+                    <p className="mt-0.5 text-xs uppercase tracking-[0.15em] text-slate-400">{group.organizationPublicId}</p>
+                  </div>
+                  <span className="rounded-full border border-black/10 bg-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                    Superadmin only
+                  </span>
+                </div>
 
                 {group.services.length === 0 ? (
                   <p className="mt-3 text-sm text-slate-500">No services yet for this organization.</p>
                 ) : (
                   <div className="mt-3 space-y-3">
                     {group.services.map((service) => (
-                      <div key={service.publicId} className="rounded-[16px] border border-black/10 bg-white p-3">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div key={service.publicId} className="rounded-[16px] border border-black/10 bg-white p-3 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
                           <div>
                             <p className="text-sm font-medium text-slate-900">{service.name}</p>
                             <p className="text-xs text-slate-500">{service.category} · {service.ratingType}</p>
                           </div>
-                          <div className="flex flex-wrap gap-2">
+                          <div className="flex flex-wrap items-center gap-2">
                             <Link
                               href={`/r/${group.organizationPublicId}/${service.publicId}`}
                               target="_blank"
-                              className="rounded-full border border-black/10 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50 active:scale-[0.98] active:translate-y-px"
+                              className="rounded-full border border-black/10 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 active:scale-[0.98] active:translate-y-px"
                             >
                               Review link
                             </Link>
                             <Link
                               href={`/qr/${group.organizationPublicId}/${service.publicId}/a6`}
                               target="_blank"
-                              className="rounded-full border border-black/10 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50 active:scale-[0.98] active:translate-y-px"
+                              className="rounded-full border border-teal-200 bg-teal-50 px-3 py-1.5 text-xs font-semibold text-teal-900 transition hover:bg-teal-100 active:scale-[0.98] active:translate-y-px"
                             >
                               A6
                             </Link>
                             <Link
                               href={`/qr/${group.organizationPublicId}/${service.publicId}/a4`}
                               target="_blank"
-                              className="rounded-full border border-black/10 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50 active:scale-[0.98] active:translate-y-px"
+                              className="rounded-full border border-teal-200 bg-teal-50 px-3 py-1.5 text-xs font-semibold text-teal-900 transition hover:bg-teal-100 active:scale-[0.98] active:translate-y-px"
                             >
                               A4 (4x)
                             </Link>
                             <Link
                               href={`/qr/${group.organizationPublicId}/${service.publicId}/a3`}
                               target="_blank"
-                              className="rounded-full border border-black/10 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50 active:scale-[0.98] active:translate-y-px"
+                              className="rounded-full border border-teal-200 bg-teal-50 px-3 py-1.5 text-xs font-semibold text-teal-900 transition hover:bg-teal-100 active:scale-[0.98] active:translate-y-px"
                             >
                               A3 (8x)
                             </Link>
                             <Link
                               href={`/api/super-admin/qr-pdf/${group.organizationPublicId}/${service.publicId}?size=a6`}
-                              className="rounded-full border border-black/10 bg-slate-950 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-800 active:scale-[0.98] active:translate-y-px"
+                              className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-900 transition hover:bg-amber-100 active:scale-[0.98] active:translate-y-px"
                             >
                               PDF A6
                             </Link>
                             <Link
                               href={`/api/super-admin/qr-pdf/${group.organizationPublicId}/${service.publicId}?size=a4`}
-                              className="rounded-full border border-black/10 bg-slate-950 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-800 active:scale-[0.98] active:translate-y-px"
+                              className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-900 transition hover:bg-amber-100 active:scale-[0.98] active:translate-y-px"
                             >
                               PDF A4
                             </Link>
                             <Link
                               href={`/api/super-admin/qr-pdf/${group.organizationPublicId}/${service.publicId}?size=a3`}
-                              className="rounded-full border border-black/10 bg-slate-950 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-800 active:scale-[0.98] active:translate-y-px"
+                              className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-900 transition hover:bg-amber-100 active:scale-[0.98] active:translate-y-px"
                             >
                               PDF A3
                             </Link>
