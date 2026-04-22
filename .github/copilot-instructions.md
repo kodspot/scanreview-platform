@@ -1,0 +1,6 @@
+- Build on the Kodspot ScanReview architecture in `docs/architecture.md`.
+- Keep the platform config-driven and multi-tenant; avoid vertical-specific hardcoding.
+- Use Next.js App Router route handlers and server components before introducing new backend services.
+- Keep MongoDB access in `src/lib/repositories` and higher-level orchestration in `src/lib/services`.
+- Preserve Vercel free-tier awareness: lean APIs, small bundles, and index-backed analytics.
+- Protect admin and super admin surfaces with role-based session checks.
