@@ -1,17 +1,12 @@
-import Link from "next/link";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { SectionCard } from "@/components/ui/section-card";
 import { AppShell } from "@/components/shell/app-shell";
-import { CreateServiceForm } from "@/components/dashboard/create-service-form";
 import { requireSession } from "@/lib/auth/guards";
 import { getDashboardSnapshot } from "@/lib/services/dashboard-service";
 
 export default async function DashboardPage() {
   const session = await requireSession(["org_admin", "org_manager", "org_analyst"]);
   const snapshot = await getDashboardSnapshot(session.organizationId || "", {});
-  const orgPublicId = snapshot.organization?.publicId ?? "";
-
-  const canManage = ["org_admin", "org_manager"].includes(session.role);
 
   return (
     <AppShell
@@ -26,13 +21,11 @@ export default async function DashboardPage() {
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-        <SectionCard
-          description="Active services and QR print assets."
-          title="Services"
-          action={canManage ? <CreateServiceForm /> : undefined}
-        >
+        <SectionCard description="Active services for this organization." title="Services">
           {snapshot.services.length === 0 ? (
-            <div className="py-8 text-center text-sm text-slate-400">No services yet. Create one to generate a QR code.</div>
+            <div className="py-8 text-center text-sm text-slate-400">
+              No services available yet. Contact superadmin to provision services and QR print assets.
+            </div>
           ) : (
             <div className="space-y-3">
               {snapshot.services.map((service) => (
@@ -46,14 +39,9 @@ export default async function DashboardPage() {
                       {service.reviewConfig.ratingType}
                     </span>
                   </div>
-                  {orgPublicId && (
-                    <div className="mt-3 flex flex-wrap gap-2 border-t border-black/5 pt-3">
-                      <Link href={`/r/${orgPublicId}/${service.publicId}`} target="_blank" className="rounded-full border border-black/10 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors">Review link</Link>
-                      <Link href={`/qr/${orgPublicId}/${service.publicId}/a6`} target="_blank" className="rounded-full border border-black/10 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors">A6 poster</Link>
-                      <Link href={`/qr/${orgPublicId}/${service.publicId}/a4`} target="_blank" className="rounded-full border border-black/10 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors">A4 print (4x)</Link>
-                      <Link href={`/qr/${orgPublicId}/${service.publicId}/a3`} target="_blank" className="rounded-full border border-black/10 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors">A3 print (8x)</Link>
-                    </div>
-                  )}
+                  <div className="mt-3 border-t border-black/5 pt-3 text-xs text-slate-500">
+                    Service ID: <span className="font-medium text-slate-700">{service.publicId}</span>
+                  </div>
                 </div>
               ))}
             </div>
@@ -86,6 +74,9 @@ export default async function DashboardPage() {
                       ))}
                     </div>
                   ) : null}
+                  <div className="mt-3 border-t border-black/5 pt-3 text-xs text-slate-500">
+                    Captured {review.submittedAt}
+                  </div>
                 </div>
               ))}
             </div>

@@ -25,19 +25,19 @@ export function AppShell({ title, eyebrow, session, children }: AppShellProps) {
           </div>
           <nav className="hidden gap-2 md:flex">
             {session.role !== "super_admin" && (
-              <Link className="rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors" href="/dashboard">
+              <Link className="rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 active:scale-[0.98] active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300" href="/dashboard">
                 Dashboard
               </Link>
             )}
             {session.role === "super_admin" && (
-              <Link className="rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors" href="/super-admin">
-                Admin
+              <Link className="rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 active:scale-[0.98] active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300" href="/super-admin">
+                Control Center
               </Link>
             )}
           </nav>
           <form action={logoutAction}>
             <button
-              className="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 transition-colors"
+              className="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 active:scale-[0.98] active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
               type="submit"
             >
               Sign out

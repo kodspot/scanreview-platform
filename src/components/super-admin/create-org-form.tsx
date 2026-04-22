@@ -18,7 +18,7 @@ export function CreateOrgForm() {
       {!open ? (
         <button
           onClick={() => setOpen(true)}
-          className="rounded-full bg-slate-950 px-5 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 transition-colors"
+          className="rounded-full bg-slate-950 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 active:scale-[0.98] active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
         >
           + New Organization
         </button>
@@ -65,14 +65,14 @@ export function CreateOrgForm() {
               <button
                 type="submit"
                 disabled={pending}
-                className="rounded-full bg-slate-950 px-5 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-60 transition-colors"
+                className="rounded-full bg-slate-950 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 active:scale-[0.98] active:translate-y-px disabled:opacity-60"
               >
                 {pending ? "Creating…" : "Create"}
               </button>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="rounded-full border border-black/10 px-5 py-2.5 text-sm text-slate-600 hover:bg-slate-100 transition-colors"
+                className="rounded-full border border-black/10 px-5 py-2.5 text-sm text-slate-600 transition hover:bg-slate-100 active:scale-[0.98] active:translate-y-px"
               >
                 Cancel
               </button>

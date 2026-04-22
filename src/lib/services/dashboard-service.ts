@@ -37,12 +37,28 @@ export const getDashboardSnapshot = unstable_cache(
 export const getSuperAdminSnapshot = unstable_cache(
   async () => {
     const organizations = await listOrganizations();
+    const organizationServices = await Promise.all(
+      organizations.map(async (organization) => {
+        const services = await listServicesByOrganization(organization._id as ObjectId);
+        return {
+          organizationPublicId: organization.publicId,
+          organizationName: organization.name,
+          services: services.map((service) => ({
+            publicId: service.publicId,
+            name: service.name,
+            category: service.category,
+            ratingType: service.reviewConfig.ratingType,
+          })),
+        };
+      }),
+    );
 
     return {
       organizationCount: organizations.length,
       reviewCount: organizations.reduce((sum, org) => sum + org.usage.reviewCount, 0),
       serviceCount: organizations.reduce((sum, org) => sum + org.usage.serviceCount, 0),
       organizations,
+      organizationServices,
     };
   },
   ["super-admin-snapshot"],

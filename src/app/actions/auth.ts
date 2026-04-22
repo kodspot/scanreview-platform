@@ -31,13 +31,13 @@ export async function adminKeyLoginAction(formData: FormData) {
   const adminKey = formData.get("admin_key") as string;
 
   if (!adminKey || !adminKey.trim()) {
-    redirect("/login?error=invalid_input");
+    redirect("/platform-provision?error=invalid_input");
   }
 
   const sessionUser = await authenticateSuperAdminByKey(adminKey.trim());
 
   if (!sessionUser) {
-    redirect("/login?error=invalid_credentials");
+    redirect("/platform-provision?error=invalid_credentials");
   }
 
   const token = await signSession(sessionUser);

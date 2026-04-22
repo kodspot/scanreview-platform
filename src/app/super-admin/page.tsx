@@ -4,6 +4,7 @@ import { KpiCard } from "@/components/ui/kpi-card";
 import { SectionCard } from "@/components/ui/section-card";
 import { CreateOrgForm } from "@/components/super-admin/create-org-form";
 import { CreateAdminForm } from "@/components/super-admin/create-admin-form";
+import { CreateServiceForOrgForm } from "@/components/super-admin/create-service-form";
 import { requireSession } from "@/lib/auth/guards";
 import { getSuperAdminSnapshot } from "@/lib/services/dashboard-service";
 
@@ -69,17 +70,11 @@ export default async function SuperAdminPage() {
                       <td className="py-4 pr-6 text-slate-600">{organization.usage.reviewCount}</td>
                       <td className="py-4">
                         <div className="flex flex-wrap items-center gap-2">
-                          <Link
-                            href={`/r/${organization.publicId}`}
-                            className="rounded-full border border-black/10 bg-white px-3.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors"
-                            target="_blank"
-                          >
-                            View
-                          </Link>
                           <CreateAdminForm
                             orgPublicId={organization.publicId}
                             orgName={organization.name}
                           />
+                          <CreateServiceForOrgForm orgPublicId={organization.publicId} orgName={organization.name} />
                         </div>
                       </td>
                     </tr>
@@ -88,6 +83,69 @@ export default async function SuperAdminPage() {
               </table>
             </div>
           )}
+        </SectionCard>
+      </div>
+
+      <div className="mt-6">
+        <SectionCard
+          description="Generate review links and print assets. QR and print controls are restricted to superadmin."
+          title="QR & Print Control"
+        >
+          <div className="space-y-4">
+            {snapshot.organizationServices.map((group) => (
+              <div key={group.organizationPublicId} className="rounded-[22px] border border-black/10 bg-slate-50 p-4">
+                <p className="text-sm font-semibold text-slate-950">{group.organizationName}</p>
+                <p className="mt-0.5 text-xs uppercase tracking-[0.15em] text-slate-400">{group.organizationPublicId}</p>
+
+                {group.services.length === 0 ? (
+                  <p className="mt-3 text-sm text-slate-500">No services yet for this organization.</p>
+                ) : (
+                  <div className="mt-3 space-y-3">
+                    {group.services.map((service) => (
+                      <div key={service.publicId} className="rounded-[16px] border border-black/10 bg-white p-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div>
+                            <p className="text-sm font-medium text-slate-900">{service.name}</p>
+                            <p className="text-xs text-slate-500">{service.category} · {service.ratingType}</p>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            <Link
+                              href={`/r/${group.organizationPublicId}/${service.publicId}`}
+                              target="_blank"
+                              className="rounded-full border border-black/10 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50 active:scale-[0.98] active:translate-y-px"
+                            >
+                              Review link
+                            </Link>
+                            <Link
+                              href={`/qr/${group.organizationPublicId}/${service.publicId}/a6`}
+                              target="_blank"
+                              className="rounded-full border border-black/10 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50 active:scale-[0.98] active:translate-y-px"
+                            >
+                              A6
+                            </Link>
+                            <Link
+                              href={`/qr/${group.organizationPublicId}/${service.publicId}/a4`}
+                              target="_blank"
+                              className="rounded-full border border-black/10 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50 active:scale-[0.98] active:translate-y-px"
+                            >
+                              A4 (4x)
+                            </Link>
+                            <Link
+                              href={`/qr/${group.organizationPublicId}/${service.publicId}/a3`}
+                              target="_blank"
+                              className="rounded-full border border-black/10 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50 active:scale-[0.98] active:translate-y-px"
+                            >
+                              A3 (8x)
+                            </Link>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         </SectionCard>
       </div>
     </AppShell>

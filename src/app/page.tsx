@@ -16,10 +16,10 @@ export default function Home() {
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row">
-            <Link className="rounded-full bg-slate-950 px-6 py-4 text-sm font-semibold text-white" href="/login">
+            <Link className="rounded-full bg-slate-950 px-6 py-4 text-sm font-semibold text-white transition hover:bg-slate-800 active:scale-[0.98] active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400" href="/login">
               Admin Login
             </Link>
-            <Link className="rounded-full border border-black/10 bg-white px-6 py-4 text-sm font-semibold" href="/r/org_demo001/svc_airport-express">
+            <Link className="rounded-full border border-black/10 bg-white px-6 py-4 text-sm font-semibold transition hover:bg-slate-50 active:scale-[0.98] active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300" href="/r/org_demo001/svc_airport-express">
               Open Demo Review Flow
             </Link>
           </div>
@@ -43,8 +43,8 @@ export default function Home() {
           <article className="rounded-[32px] border border-black/10 bg-white p-8 shadow-[0_30px_100px_rgba(15,23,42,0.1)]">
             <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Core flows</p>
             <ol className="mt-5 space-y-4 text-sm leading-7 text-slate-700">
-              <li>1. Super admin provisions organizations and controls feature flags.</li>
-              <li>2. Organization admins create services and generate QR-linked review endpoints.</li>
+              <li>1. Platform operations team provisions organizations and controls feature flags.</li>
+              <li>2. Organization admins monitor service performance and review timelines.</li>
               <li>3. Customers scan QR, submit feedback without login, and finish in under 10 seconds.</li>
               <li>4. Dashboards surface trends, average rating, recent reviews, and low-rating alerts.</li>
             </ol>
