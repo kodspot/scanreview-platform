@@ -19,38 +19,46 @@ export function QrPoster({
 }: QrPosterProps) {
   return (
     <div
-      className="mx-auto flex w-[105mm] min-h-[148mm] flex-col justify-between overflow-hidden rounded-[22px] bg-white p-[10mm] text-slate-950 shadow-[0_30px_100px_rgba(15,23,42,0.18)] print:shadow-none"
-      style={{
-        borderTop: `8mm solid ${primaryColor}`,
-        borderBottom: `4mm solid ${accentColor}`,
-      }}
+      className="mx-auto flex w-[105mm] min-h-[148mm] flex-col justify-between overflow-hidden rounded-[22px] bg-white p-[8mm] text-slate-950 shadow-[0_30px_100px_rgba(15,23,42,0.18)] print:shadow-none print:rounded-none"
+      style={{ borderTop: `7mm solid ${primaryColor}` }}
     >
+      {/* Header — org name is the big headline */}
       <div>
-        <p className="text-[11px] uppercase tracking-[0.35em] text-slate-500">Kodspot ScanReview</p>
-        <h1 className="mt-3 text-[28px] font-semibold leading-tight">Rate your {serviceName}</h1>
-        <p className="mt-4 max-w-[70mm] text-[15px] leading-6 text-slate-600">
-          Scan the QR and share feedback in under 10 seconds. Your insight helps {organizationName} improve faster.
+        <h1
+          className="text-[26px] font-bold leading-tight"
+          style={{ color: primaryColor }}
+        >
+          {organizationName}
+        </h1>
+        <p className="mt-1 text-[13px] font-medium text-slate-700">{serviceName}</p>
+        <p className="mt-3 text-[13px] leading-[1.55] text-slate-500">
+          Scan the QR and share feedback in under 10 seconds.
         </p>
       </div>
 
-      <div className="mt-8 rounded-[20px] bg-[linear-gradient(180deg,#fff7ed_0%,#ffffff_100%)] p-5">
+      {/* QR code */}
+      <div
+        className="mt-6 rounded-[18px] p-4"
+        style={{ background: `linear-gradient(180deg, ${primaryColor}14 0%, #ffffff 100%)` }}
+      >
         <Image
           alt="QR code"
-          className="mx-auto h-[58mm] w-[58mm] rounded-[18px] bg-white p-3"
+          className="mx-auto h-[56mm] w-[56mm] rounded-[14px] bg-white p-2"
           height={900}
           src={qrDataUrl}
           unoptimized
           width={900}
         />
-        <div className="mt-4 text-center">
-          <p className="text-[15px] font-semibold">{organizationName}</p>
-          <p className="mt-1 text-[12px] text-slate-500">{targetUrl}</p>
-        </div>
+        <p className="mt-3 text-center text-[11px] break-all text-slate-400">{targetUrl}</p>
       </div>
 
-      <div className="mt-6 flex items-center justify-between text-[12px] text-slate-500">
-        <span>Format: A6 print-ready</span>
-        <span>300 DPI export friendly</span>
+      {/* Footer — company branding small */}
+      <div
+        className="mt-5 flex items-center justify-between pt-4 text-[10px] text-slate-400"
+        style={{ borderTop: `2px solid ${accentColor}` }}
+      >
+        <span>Kodspot ScanReview</span>
+        <span>300 DPI · A6</span>
       </div>
     </div>
   );

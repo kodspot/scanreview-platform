@@ -1,7 +1,7 @@
 import { unstable_cache } from "next/cache";
 import { ObjectId } from "mongodb";
 import { formatDistanceToNow } from "date-fns";
-import { listOrganizations } from "@/lib/repositories/organizations";
+import { findOrganizationById, listOrganizations } from "@/lib/repositories/organizations";
 import { aggregateDashboardMetrics, listRecentReviewsByOrganization } from "@/lib/repositories/reviews";
 import { listServicesByOrganization } from "@/lib/repositories/services";
 import type { DashboardFilters } from "@/lib/types";
@@ -9,13 +9,15 @@ import type { DashboardFilters } from "@/lib/types";
 export const getDashboardSnapshot = unstable_cache(
   async (organizationId: string, filters: DashboardFilters) => {
     const orgObjectId = new ObjectId(organizationId);
-    const [services, metrics, recentReviews] = await Promise.all([
+    const [organization, services, metrics, recentReviews] = await Promise.all([
+      findOrganizationById(orgObjectId),
       listServicesByOrganization(orgObjectId),
       aggregateDashboardMetrics(orgObjectId, filters),
       listRecentReviewsByOrganization(orgObjectId, filters),
     ]);
 
     return {
+      organization,
       services,
       metrics,
       recentReviews: recentReviews.map((review) => ({
@@ -29,7 +31,7 @@ export const getDashboardSnapshot = unstable_cache(
     };
   },
   ["dashboard-snapshot"],
-  { revalidate: 90 },
+  { revalidate: 90, tags: ["dashboard-snapshot"] },
 );
 
 export const getSuperAdminSnapshot = unstable_cache(
@@ -44,5 +46,5 @@ export const getSuperAdminSnapshot = unstable_cache(
     };
   },
   ["super-admin-snapshot"],
-  { revalidate: 120 },
+  { revalidate: 120, tags: ["super-admin-snapshot"] },
 );

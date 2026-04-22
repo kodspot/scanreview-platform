@@ -13,27 +13,31 @@ interface AppShellProps {
 export function AppShell({ title, eyebrow, session, children }: AppShellProps) {
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(245,158,11,0.18),_transparent_36%),linear-gradient(180deg,#f8fafc_0%,#f3efe4_100%)] text-slate-950">
-      <header className="mx-auto flex w-full max-w-7xl items-center justify-between px-6 py-6 lg:px-10">
+      <header className="mx-auto flex w-full max-w-7xl items-center justify-between px-6 py-5 lg:px-10">
         <div>
-          <p className="text-xs uppercase tracking-[0.32em] text-slate-500">{eyebrow}</p>
-          <h1 className="mt-2 text-2xl font-semibold">{title}</h1>
+          <h1 className="text-xl font-bold text-slate-950 leading-tight">{eyebrow}</h1>
+          <p className="text-xs text-slate-500 mt-0.5">{title}</p>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="text-right">
-            <p className="text-sm font-medium">{session.name}</p>
-            <p className="text-xs uppercase tracking-[0.22em] text-slate-500">{session.role}</p>
+        <div className="flex items-center gap-3">
+          <div className="hidden text-right md:block">
+            <p className="text-sm font-medium text-slate-950">{session.name}</p>
+            <p className="text-xs uppercase tracking-[0.22em] text-slate-400">{session.role.replace("_", " ")}</p>
           </div>
-          <nav className="hidden gap-3 md:flex">
-            <Link className="rounded-full border border-black/10 px-4 py-2 text-sm" href="/dashboard">
-              Dashboard
-            </Link>
-            <Link className="rounded-full border border-black/10 px-4 py-2 text-sm" href="/super-admin">
-              Super Admin
-            </Link>
+          <nav className="hidden gap-2 md:flex">
+            {session.role !== "super_admin" && (
+              <Link className="rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors" href="/dashboard">
+                Dashboard
+              </Link>
+            )}
+            {session.role === "super_admin" && (
+              <Link className="rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors" href="/super-admin">
+                Admin
+              </Link>
+            )}
           </nav>
           <form action={logoutAction}>
             <button
-              className="rounded-full bg-slate-950 px-4 py-2 text-sm font-medium text-white"
+              className="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 transition-colors"
               type="submit"
             >
               Sign out
