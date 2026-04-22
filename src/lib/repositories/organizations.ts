@@ -18,7 +18,12 @@ export async function findOrganizationById(id: string | ObjectId) {
 
 export async function listOrganizations() {
   const collection = await getOrganizationsCollection();
-  return collection.find({}).sort({ createdAt: -1 }).toArray();
+  return collection.find({ status: { $ne: "archived" } }).sort({ createdAt: -1 }).toArray();
+}
+
+export async function listArchivedOrganizations() {
+  const collection = await getOrganizationsCollection();
+  return collection.find({ status: "archived" }).sort({ updatedAt: -1 }).toArray();
 }
 
 export async function createOrganization(organization: Organization) {
@@ -30,6 +35,42 @@ export async function createOrganization(organization: Organization) {
 export async function deleteOrganizationById(organizationId: ObjectId) {
   const collection = await getOrganizationsCollection();
   return collection.deleteOne({ _id: organizationId });
+}
+
+export async function archiveOrganizationById(
+  organizationId: ObjectId,
+  archive: NonNullable<Organization["archive"]>,
+) {
+  const collection = await getOrganizationsCollection();
+  return collection.updateOne(
+    { _id: organizationId, status: { $ne: "archived" } },
+    {
+      $set: {
+        status: "archived",
+        archive,
+        updatedAt: new Date(),
+      },
+    },
+  );
+}
+
+export async function restoreOrganizationById(organizationId: ObjectId) {
+  const collection = await getOrganizationsCollection();
+  const existing = await collection.findOne({ _id: organizationId });
+  const previousStatus = existing?.archive?.previousStatus || "trial";
+
+  return collection.updateOne(
+    { _id: organizationId, status: "archived" },
+    {
+      $set: {
+        status: previousStatus,
+        updatedAt: new Date(),
+      },
+      $unset: {
+        archive: "",
+      },
+    },
+  );
 }
 
 export async function incrementOrganizationUsage(

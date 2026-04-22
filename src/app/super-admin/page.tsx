@@ -7,6 +7,8 @@ import { CreateAdminForm } from "@/components/super-admin/create-admin-form";
 import { CreateServiceForOrgForm } from "@/components/super-admin/create-service-form";
 import { ResetAdminPasswordForm } from "@/components/super-admin/reset-admin-password-form";
 import { DeleteOrgForm } from "@/components/super-admin/delete-org-form";
+import { RestoreOrgForm } from "@/components/super-admin/restore-org-form";
+import { PurgeOrgForm } from "@/components/super-admin/purge-org-form";
 import { requireSession } from "@/lib/auth/guards";
 import { getSuperAdminSnapshot } from "@/lib/services/dashboard-service";
 
@@ -14,6 +16,7 @@ const STATUS_STYLES: Record<string, string> = {
   active: "bg-emerald-50 text-emerald-700",
   trial: "bg-amber-50 text-amber-700",
   suspended: "bg-red-50 text-red-700",
+  archived: "bg-slate-200 text-slate-700",
 };
 
 export default async function SuperAdminPage() {
@@ -26,6 +29,37 @@ export default async function SuperAdminPage() {
         <KpiCard helper="Provisioned tenants" label="Organizations" value={snapshot.organizationCount.toString()} />
         <KpiCard helper="All-time captured feedback" label="Reviews" value={snapshot.reviewCount.toString()} />
         <KpiCard helper="Tenant service inventory" label="Services" value={snapshot.serviceCount.toString()} />
+      </div>
+
+      <div className="mt-6">
+        <SectionCard
+          description="Soft-deleted tenants can be restored safely. Permanent purge is available when required."
+          title="Archived Organizations"
+        >
+          {snapshot.archivedOrganizations.length === 0 ? (
+            <p className="text-sm text-slate-500">No archived organizations.</p>
+          ) : (
+            <div className="space-y-3">
+              {snapshot.archivedOrganizations.map((organization) => (
+                <div key={`archived-${organization.publicId}`} className="rounded-[16px] border border-black/10 bg-slate-50 p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">{organization.name}</p>
+                      <p className="text-xs uppercase tracking-[0.16em] text-slate-400">{organization.publicId}</p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        Archived by {organization.archive?.byName || "Unknown"}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-start gap-2">
+                      <RestoreOrgForm orgPublicId={organization.publicId} />
+                      <PurgeOrgForm orgName={organization.name} orgPublicId={organization.publicId} />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </SectionCard>
       </div>
 
       <div className="mt-6">
@@ -204,6 +238,28 @@ export default async function SuperAdminPage() {
               </div>
             ))}
           </div>
+        </SectionCard>
+      </div>
+
+      <div className="mt-6">
+        <SectionCard
+          description="Recent platform operations for security, compliance, and audit readiness."
+          title="Audit Trail"
+        >
+          {snapshot.recentAuditLogs.length === 0 ? (
+            <p className="text-sm text-slate-500">No audit events captured yet.</p>
+          ) : (
+            <div className="space-y-2">
+              {snapshot.recentAuditLogs.map((log) => (
+                <div key={log._id?.toString() || `${log.action}-${log.createdAt}`} className="rounded-[12px] border border-black/10 bg-slate-50 px-3 py-2">
+                  <p className="text-sm font-medium text-slate-900">{log.summary}</p>
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    {log.actor.name} ({log.actor.email}) · {new Date(log.createdAt).toLocaleString()}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
         </SectionCard>
       </div>
     </AppShell>

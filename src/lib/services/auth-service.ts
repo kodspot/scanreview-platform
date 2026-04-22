@@ -1,5 +1,6 @@
 import { findUserByEmail, updateUserLastLogin } from "@/lib/repositories/users";
 import { verifyPassword } from "@/lib/auth/password";
+import { findOrganizationById } from "@/lib/repositories/organizations";
 import { env } from "@/lib/env";
 import type { SessionUser } from "@/lib/types";
 
@@ -14,6 +15,13 @@ export async function authenticateUser(email: string, password: string): Promise
 
   if (!isValid) {
     return null;
+  }
+
+  if (user.organizationId) {
+    const organization = await findOrganizationById(user.organizationId);
+    if (!organization || organization.status === "archived" || organization.status === "suspended") {
+      return null;
+    }
   }
 
   if (user._id) {

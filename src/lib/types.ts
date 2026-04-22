@@ -6,7 +6,7 @@ export type UserRole =
   | "org_manager"
   | "org_analyst";
 
-export type OrganizationStatus = "active" | "trial" | "suspended";
+export type OrganizationStatus = "active" | "trial" | "suspended" | "archived";
 export type ServiceStatus = "active" | "paused";
 export type RatingType = "stars" | "emoji" | "numeric";
 export type QuestionType = "text" | "textarea" | "select" | "boolean";
@@ -42,8 +42,39 @@ export interface Organization {
     qrCount: number;
     lastReviewAt?: Date;
   };
+  archive?: {
+    at: Date;
+    byUserId?: string;
+    byName?: string;
+    previousStatus: Exclude<OrganizationStatus, "archived">;
+  };
   createdAt: Date;
   updatedAt: Date;
+}
+
+export type AuditActorRole = UserRole;
+
+export interface AuditLog {
+  _id?: ObjectId;
+  actor: {
+    userId: string;
+    name: string;
+    email: string;
+    role: AuditActorRole;
+  };
+  organizationPublicId?: string;
+  action:
+    | "organization.created"
+    | "organization.archived"
+    | "organization.restored"
+    | "organization.purged"
+    | "admin.created"
+    | "admin.password_reset"
+    | "service.created"
+    | "qr.pdf_downloaded";
+  summary: string;
+  metadata?: Record<string, string | number | boolean | null | undefined>;
+  createdAt: Date;
 }
 
 export interface User {

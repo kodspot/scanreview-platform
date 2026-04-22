@@ -1,10 +1,15 @@
 import { unstable_cache } from "next/cache";
 import { ObjectId } from "mongodb";
 import { formatDistanceToNow } from "date-fns";
-import { findOrganizationById, listOrganizations } from "@/lib/repositories/organizations";
+import {
+  findOrganizationById,
+  listArchivedOrganizations,
+  listOrganizations,
+} from "@/lib/repositories/organizations";
 import { aggregateDashboardMetrics, listRecentReviewsByOrganization } from "@/lib/repositories/reviews";
 import { listServicesByOrganization } from "@/lib/repositories/services";
 import { findUsersByOrganization } from "@/lib/repositories/users";
+import { listRecentAuditLogs } from "@/lib/repositories/audit-logs";
 import type { DashboardFilters } from "@/lib/types";
 
 export const getDashboardSnapshot = unstable_cache(
@@ -38,7 +43,11 @@ export const getDashboardSnapshot = unstable_cache(
 
 export const getSuperAdminSnapshot = unstable_cache(
   async () => {
-    const organizations = await listOrganizations();
+    const [organizations, archivedOrganizations, recentAuditLogs] = await Promise.all([
+      listOrganizations(),
+      listArchivedOrganizations(),
+      listRecentAuditLogs(12),
+    ]);
     const organizationServices = await Promise.all(
       organizations.map(async (organization) => {
         const [services, users] = await Promise.all([
@@ -72,7 +81,9 @@ export const getSuperAdminSnapshot = unstable_cache(
       reviewCount: organizations.reduce((sum, org) => sum + org.usage.reviewCount, 0),
       serviceCount: organizations.reduce((sum, org) => sum + org.usage.serviceCount, 0),
       organizations,
+      archivedOrganizations,
       organizationServices,
+      recentAuditLogs,
     };
   },
   ["super-admin-snapshot"],

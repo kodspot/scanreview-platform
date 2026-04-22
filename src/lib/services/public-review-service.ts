@@ -50,7 +50,7 @@ export const getPublicReviewExperience = unstable_cache(
   async (orgId: string, serviceId: string) => {
     const organization = await findOrganizationByPublicId(orgId);
 
-    if (!organization || organization.status === "suspended") {
+    if (!organization || organization.status === "suspended" || organization.status === "archived") {
       return null;
     }
 

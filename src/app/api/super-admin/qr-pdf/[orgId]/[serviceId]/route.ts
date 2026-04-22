@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { PDFDocument, rgb, StandardFonts, type PDFPage } from "pdf-lib";
 import QRCode from "qrcode";
 import { getSessionUser } from "@/lib/auth/session";
+import { createAuditLog } from "@/lib/repositories/audit-logs";
 import { getPublicReviewExperience } from "@/lib/services/public-review-service";
 
 const MM_TO_PT = 2.8346456693;
@@ -239,6 +240,23 @@ export async function GET(
 
   const bytes = await pdf.save();
   const filename = `${orgId}_${serviceId}_${size}.pdf`;
+
+  await createAuditLog({
+    actor: {
+      userId: session.userId,
+      name: session.name,
+      email: session.email,
+      role: session.role,
+    },
+    action: "qr.pdf_downloaded",
+    summary: `Downloaded ${size.toUpperCase()} QR PDF for ${experience.organization.name} / ${experience.service.name}`,
+    organizationPublicId: orgId,
+    metadata: {
+      serviceId,
+      size,
+    },
+    createdAt: new Date(),
+  });
 
   return new NextResponse(Buffer.from(bytes), {
     headers: {
