@@ -1,3 +1,4 @@
+import { loadEnvConfig } from "@next/env";
 import { ObjectId } from "mongodb";
 import { ensureIndexes } from "../src/lib/db/indexes";
 import { getDatabase } from "../src/lib/db/mongodb";
@@ -5,17 +6,20 @@ import { hashPassword } from "../src/lib/auth/password";
 import { createPublicId } from "../src/lib/utils";
 import type { Organization, QrCodeAsset, Review, Service, User } from "../src/lib/types";
 
+loadEnvConfig(process.cwd());
+
 async function upsertOrganization(
   organization: Omit<Organization, "_id">,
 ): Promise<Organization & { _id: ObjectId }> {
   const db = await getDatabase();
   const organizations = db.collection<Organization>("organizations");
+  const { createdAt, ...organizationPatch } = organization;
 
   await organizations.updateOne(
     { publicId: organization.publicId },
     {
-      $set: { ...organization, updatedAt: new Date() },
-      $setOnInsert: { createdAt: organization.createdAt },
+      $set: { ...organizationPatch, updatedAt: new Date() },
+      $setOnInsert: { createdAt },
     },
     { upsert: true },
   );
@@ -32,12 +36,13 @@ async function upsertOrganization(
 async function upsertService(service: Omit<Service, "_id">): Promise<Service & { _id: ObjectId }> {
   const db = await getDatabase();
   const services = db.collection<Service>("services");
+  const { createdAt, ...servicePatch } = service;
 
   await services.updateOne(
     { organizationId: service.organizationId, publicId: service.publicId },
     {
-      $set: { ...service, updatedAt: new Date() },
-      $setOnInsert: { createdAt: service.createdAt },
+      $set: { ...servicePatch, updatedAt: new Date() },
+      $setOnInsert: { createdAt },
     },
     { upsert: true },
   );
@@ -57,12 +62,13 @@ async function upsertService(service: Omit<Service, "_id">): Promise<Service & {
 async function upsertQrCode(asset: Omit<QrCodeAsset, "_id">) {
   const db = await getDatabase();
   const qrCodes = db.collection<QrCodeAsset>("qr_codes");
+  const { createdAt, ...assetPatch } = asset;
 
   await qrCodes.updateOne(
     { organizationId: asset.organizationId, serviceId: asset.serviceId },
     {
-      $set: { ...asset, updatedAt: new Date() },
-      $setOnInsert: { createdAt: asset.createdAt },
+      $set: { ...assetPatch, updatedAt: new Date() },
+      $setOnInsert: { createdAt },
     },
     { upsert: true },
   );
@@ -71,12 +77,13 @@ async function upsertQrCode(asset: Omit<QrCodeAsset, "_id">) {
 async function upsertUser(user: Omit<User, "_id">) {
   const db = await getDatabase();
   const users = db.collection<User>("users");
+  const { createdAt, ...userPatch } = user;
 
   await users.updateOne(
     { email: user.email },
     {
-      $set: { ...user, updatedAt: new Date() },
-      $setOnInsert: { createdAt: user.createdAt },
+      $set: { ...userPatch, updatedAt: new Date() },
+      $setOnInsert: { createdAt },
     },
     { upsert: true },
   );
