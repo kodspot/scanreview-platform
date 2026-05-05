@@ -45,3 +45,37 @@ export async function deleteServicesAndQrByOrganization(organizationId: ObjectId
     qrCollection.deleteMany({ organizationId }),
   ]);
 }
+
+export async function updateService(
+  organizationId: ObjectId,
+  servicePublicId: string,
+  patch: Partial<Pick<Service, "name" | "category" | "status">>,
+) {
+  const collection = await getServicesCollection();
+  const update: Record<string, unknown> = { updatedAt: new Date() };
+  if (typeof patch.name === "string" && patch.name.trim().length > 0) {
+    update.name = patch.name.trim();
+  }
+  if (typeof patch.category === "string" && patch.category.trim().length > 0) {
+    update.category = patch.category.trim();
+  }
+  if (patch.status === "active" || patch.status === "paused") {
+    update.status = patch.status;
+  }
+  if (Object.keys(update).length === 1) return null;
+  return collection.findOneAndUpdate(
+    { organizationId, publicId: servicePublicId },
+    { $set: update },
+    { returnDocument: "after" },
+  );
+}
+
+export async function deleteServiceByPublicId(organizationId: ObjectId, servicePublicId: string) {
+  const collection = await getServicesCollection();
+  const qrCollection = await getQrCodesCollection();
+  const service = await collection.findOne({ organizationId, publicId: servicePublicId });
+  if (!service?._id) return null;
+  await qrCollection.deleteMany({ serviceId: service._id });
+  await collection.deleteOne({ _id: service._id });
+  return service;
+}

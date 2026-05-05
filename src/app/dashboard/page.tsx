@@ -3,6 +3,9 @@ import { SectionCard } from "@/components/ui/section-card";
 import { AppShell } from "@/components/shell/app-shell";
 import { ActionChipLink } from "@/components/super-admin/action-chip-link";
 import { CreateServiceForm } from "@/components/dashboard/create-service-form";
+import { ServiceActions } from "@/components/dashboard/service-actions";
+import { RatingsDistribution } from "@/components/dashboard/ratings-distribution";
+import { ActivityTrend } from "@/components/dashboard/activity-trend";
 import { NoticeBanner } from "@/components/ui/notice-banner";
 import { requireSession } from "@/lib/auth/guards";
 import { getDashboardSnapshot } from "@/lib/services/dashboard-service";
@@ -17,6 +20,10 @@ export default async function DashboardPage({
   const { notice, message } = await searchParams;
   const orgPublicId = snapshot.organization?.publicId;
   const canManageServices = session.role === "org_admin" || session.role === "org_manager";
+  const canDeleteServices = session.role === "org_admin";
+
+  const conversionPct = (snapshot.metrics.conversionRate * 100).toFixed(1);
+  const maxRating = snapshot.services[0]?.reviewConfig.maxRating ?? 5;
 
   return (
     <AppShell
@@ -26,10 +33,21 @@ export default async function DashboardPage({
     >
       {notice ? <NoticeBanner tone={notice === "success" ? "success" : "error"} message={message ?? ""} /> : null}
 
-      <div className="grid gap-5 lg:grid-cols-3">
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-5">
         <KpiCard helper="Across the current tenant scope" label="Average rating" value={snapshot.metrics.averageRating.toFixed(2)} />
         <KpiCard helper="Total captured submissions" label="Reviews" value={snapshot.metrics.reviewCount.toString()} />
+        <KpiCard helper="QR scans tracked from public review pages" label="Scans" value={snapshot.metrics.scanCount.toString()} />
+        <KpiCard helper="Reviews submitted per scan" label="Conversion" value={`${conversionPct}%`} />
         <KpiCard helper="Triggers follow-up workflows" label="Low-rating alerts" value={snapshot.metrics.lowRatingCount.toString()} />
+      </div>
+
+      <div className="mt-6 grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+        <SectionCard description="Daily scans vs reviews — last 30 days." title="Activity trend">
+          <ActivityTrend trend={snapshot.metrics.trend} />
+        </SectionCard>
+        <SectionCard description="How customer ratings are distributed." title="Ratings distribution">
+          <RatingsDistribution distribution={snapshot.metrics.distribution || []} maxRating={maxRating} />
+        </SectionCard>
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
@@ -51,12 +69,21 @@ export default async function DashboardPage({
                       <p className="font-semibold text-slate-950">{service.name}</p>
                       <p className="text-xs text-slate-500 mt-0.5">{service.category}</p>
                     </div>
-                    <span className="shrink-0 rounded-full bg-white px-3 py-1 text-xs uppercase tracking-[0.2em] text-slate-500 border border-black/5">
-                      {service.reviewConfig.ratingType}
+                    <span
+                      className={`shrink-0 rounded-full px-3 py-1 text-xs uppercase tracking-[0.2em] border ${
+                        service.status === "active"
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                          : "bg-amber-50 text-amber-800 border-amber-200"
+                      }`}
+                    >
+                      {service.status}
                     </span>
                   </div>
                   <div className="mt-3 border-t border-black/5 pt-3 text-xs text-slate-500">
                     Service ID: <span className="font-medium text-slate-700">{service.publicId}</span>
+                    <span className="ml-2 rounded-full bg-white px-2 py-0.5 text-[10px] uppercase tracking-[0.16em] text-slate-500 border border-black/5">
+                      {service.reviewConfig.ratingType}
+                    </span>
                   </div>
                   {orgPublicId ? (
                     <div className="mt-3 space-y-2">
@@ -91,6 +118,17 @@ export default async function DashboardPage({
                           tone="pdf"
                         />
                       </div>
+                      {canManageServices ? (
+                        <div className="mt-3 border-t border-black/5 pt-3">
+                          <ServiceActions
+                            servicePublicId={service.publicId}
+                            serviceName={service.name}
+                            serviceCategory={service.category}
+                            serviceStatus={service.status}
+                            canDelete={canDeleteServices}
+                          />
+                        </div>
+                      ) : null}
                     </div>
                   ) : null}
                 </div>

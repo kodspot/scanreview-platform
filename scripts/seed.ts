@@ -176,6 +176,13 @@ async function seedReviews(organizationId: ObjectId, serviceId: ObjectId) {
 }
 
 async function main() {
+  if (process.env.NODE_ENV === "production" && process.env.SEED_ALLOW_PRODUCTION !== "true") {
+    console.error(
+      "[seed] Refusing to seed: NODE_ENV=production. Set SEED_ALLOW_PRODUCTION=true to override.",
+    );
+    process.exit(1);
+  }
+
   await ensureIndexes();
 
   const passwordHash = await hashPassword("ChangeMe123!");

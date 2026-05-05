@@ -7,6 +7,10 @@ const errors: Record<string, string> = {
   session_expired: "Your session expired. Please sign in again.",
 };
 
+const notices: Record<string, string> = {
+  password_reset_success: "Password updated. Sign in with your new password.",
+};
+
 export default async function LoginPage({
   searchParams,
 }: {
@@ -66,8 +70,10 @@ export default async function LoginPage({
               />
             </label>
 
-            {error ? (
-              <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{errors[error] || "Unable to sign in."}</p>
+            {error && notices[error] ? (
+              <p role="status" className="rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{notices[error]}</p>
+            ) : error ? (
+              <p role="alert" className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{errors[error] || "Unable to sign in."}</p>
             ) : null}
 
             <button
@@ -78,8 +84,17 @@ export default async function LoginPage({
             </button>
           </form>
 
-          <p className="mt-6 text-sm text-slate-500">
-            Public review route example: <Link className="font-medium text-slate-950 hover:text-slate-700" href="/r/org_demo001/svc_airport-express">/r/org_demo001/svc_airport-express</Link>
+          <div className="mt-6 flex items-center justify-between text-sm">
+            <Link className="font-medium text-slate-700 hover:text-slate-950" href="/forgot-password">
+              Forgot password?
+            </Link>
+            <Link className="text-slate-500 hover:text-slate-700" href="/r/org_demo001/svc_airport-express">
+              Demo review flow →
+            </Link>
+          </div>
+
+          <p className="mt-4 text-xs text-slate-400">
+            Public review route example: /r/&lt;org&gt;/&lt;service&gt;
           </p>
         </section>
       </div>

@@ -62,6 +62,8 @@ export async function aggregateDashboardMetrics(
       averageRating: number;
       lowRatingCount: number;
       trend: Array<{ date: string; averageRating: number; reviewCount: number }>;
+      distribution: Array<{ rating: number; count: number }>;
+      bySentiment: Array<{ sentiment: string; count: number }>;
     }>([
       { $match: match },
       {
@@ -92,12 +94,21 @@ export async function aggregateDashboardMetrics(
             },
             { $sort: { _id: 1 } },
           ],
+          distribution: [
+            { $group: { _id: { $floor: "$ratingValue" }, count: { $sum: 1 } } },
+            { $sort: { _id: 1 } },
+          ],
+          bySentiment: [
+            { $group: { _id: "$sentiment", count: { $sum: 1 } } },
+          ],
         },
       },
       {
         $project: {
           summary: { $first: "$summary" },
           trend: 1,
+          distribution: 1,
+          bySentiment: 1,
         },
       },
       {
@@ -116,6 +127,20 @@ export async function aggregateDashboardMetrics(
               },
             },
           },
+          distribution: {
+            $map: {
+              input: "$distribution",
+              as: "d",
+              in: { rating: "$$d._id", count: "$$d.count" },
+            },
+          },
+          bySentiment: {
+            $map: {
+              input: "$bySentiment",
+              as: "s",
+              in: { sentiment: "$$s._id", count: "$$s.count" },
+            },
+          },
         },
       },
     ])
@@ -127,6 +152,8 @@ export async function aggregateDashboardMetrics(
       averageRating: 0,
       lowRatingCount: 0,
       trend: [],
+      distribution: [],
+      bySentiment: [],
     }
   );
 }

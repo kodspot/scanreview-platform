@@ -70,7 +70,10 @@ export interface AuditLog {
     | "organization.purged"
     | "admin.created"
     | "admin.password_reset"
+    | "admin.password_reset_requested"
     | "service.created"
+    | "service.updated"
+    | "service.archived"
     | "qr.pdf_downloaded";
   summary: string;
   metadata?: Record<string, string | number | boolean | null | undefined>;
@@ -187,4 +190,26 @@ export interface DashboardFilters {
   serviceId?: string;
   from?: string;
   to?: string;
+}
+
+export interface QrScanEvent {
+  _id?: ObjectId;
+  organizationId: ObjectId;
+  serviceId: ObjectId;
+  qrCodeId?: ObjectId;
+  scannedAt: Date;
+  ipHash?: string;
+  userAgentHash?: string;
+  locale?: string;
+}
+
+export interface PasswordResetToken {
+  _id?: ObjectId;
+  userId: ObjectId;
+  tokenHash: string;
+  email: string;
+  expiresAt: Date;
+  consumedAt?: Date;
+  createdAt: Date;
+  requestIpHash?: string;
 }

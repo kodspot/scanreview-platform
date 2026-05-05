@@ -7,6 +7,7 @@ import {
   listOrganizations,
 } from "@/lib/repositories/organizations";
 import { aggregateDashboardMetrics, listRecentReviewsByOrganization } from "@/lib/repositories/reviews";
+import { aggregateScanMetrics } from "@/lib/repositories/scans";
 import { listServicesByOrganization } from "@/lib/repositories/services";
 import { findUsersByOrganization } from "@/lib/repositories/users";
 import { listRecentAuditLogs } from "@/lib/repositories/audit-logs";
@@ -15,17 +16,42 @@ import type { DashboardFilters } from "@/lib/types";
 export const getDashboardSnapshot = unstable_cache(
   async (organizationId: string, filters: DashboardFilters) => {
     const orgObjectId = new ObjectId(organizationId);
-    const [organization, services, metrics, recentReviews] = await Promise.all([
+    const [organization, services, metrics, scanMetrics, recentReviews] = await Promise.all([
       findOrganizationById(orgObjectId),
       listServicesByOrganization(orgObjectId),
       aggregateDashboardMetrics(orgObjectId, filters),
+      aggregateScanMetrics(orgObjectId, filters),
       listRecentReviewsByOrganization(orgObjectId, filters),
     ]);
+
+    const scanCount = scanMetrics.scanCount || 0;
+    const reviewCount = metrics.reviewCount || 0;
+    const conversionRate = scanCount > 0 ? Math.min(1, reviewCount / scanCount) : 0;
+
+    // Merge reviews + scans into a single trend with both axes.
+    const trendByDate = new Map<string, { date: string; reviewCount: number; averageRating: number; scanCount: number }>();
+    for (const point of metrics.trend) {
+      trendByDate.set(point.date, { ...point, scanCount: 0 });
+    }
+    for (const point of scanMetrics.trend) {
+      const existing = trendByDate.get(point.date);
+      if (existing) {
+        existing.scanCount = point.scanCount;
+      } else {
+        trendByDate.set(point.date, { date: point.date, reviewCount: 0, averageRating: 0, scanCount: point.scanCount });
+      }
+    }
+    const mergedTrend = Array.from(trendByDate.values()).sort((a, b) => a.date.localeCompare(b.date));
 
     return {
       organization,
       services,
-      metrics,
+      metrics: {
+        ...metrics,
+        scanCount,
+        conversionRate,
+        trend: mergedTrend,
+      },
       recentReviews: recentReviews.map((review) => {
         const serviceKey = review.serviceId?.toString();
         const matchedService = services.find((service) => service._id?.toString() === serviceKey);

@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import QRCode from "qrcode";
 import { getPublicReviewExperience } from "@/lib/services/public-review-service";
+import { env } from "@/lib/env";
 
 // A3 landscape page: 420mm × 297mm — 4 columns × 2 rows = 8 A6 tiles
 // Each tile: (420 - 5×5mm) / 4 = 98.75mm wide, (297 - 3×5mm) / 2 = 141mm tall
@@ -17,7 +18,7 @@ export default async function QrA3Page({
     notFound();
   }
 
-  const targetUrl = `${process.env.APP_URL || "http://localhost:3000"}/r/${orgId}/${serviceId}`;
+  const targetUrl = `${env.appUrl}/r/${orgId}/${serviceId}`;
   const qrDataUrl = await QRCode.toDataURL(targetUrl, {
     margin: 1,
     width: 800,

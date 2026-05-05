@@ -2,6 +2,7 @@ import Link from "next/link";
 import { InstallPwaButton } from "@/components/pwa/install-button";
 
 export default function Home() {
+  const showDemo = process.env.NODE_ENV !== "production";
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(15,118,110,0.2),_transparent_34%),radial-gradient(circle_at_bottom_right,_rgba(234,88,12,0.16),_transparent_32%),linear-gradient(180deg,#fff7ed_0%,#f8fafc_52%,#f3efe4_100%)] px-6 py-8 text-slate-950">
       <main className="mx-auto max-w-7xl">
@@ -20,9 +21,11 @@ export default function Home() {
             <Link className="rounded-full bg-slate-950 px-6 py-4 text-sm font-semibold text-white transition hover:bg-slate-800 active:scale-[0.98] active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400" href="/login">
               Admin Login
             </Link>
-            <Link className="rounded-full border border-black/10 bg-white px-6 py-4 text-sm font-semibold transition hover:bg-slate-50 active:scale-[0.98] active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300" href="/r/org_demo001/svc_airport-express">
-              Open Demo Review Flow
-            </Link>
+            {showDemo ? (
+              <Link className="rounded-full border border-black/10 bg-white px-6 py-4 text-sm font-semibold transition hover:bg-slate-50 active:scale-[0.98] active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300" href="/r/org_demo001/svc_airport-express">
+                Open Demo Review Flow
+              </Link>
+            ) : null}
             <InstallPwaButton />
           </div>
         </header>
@@ -51,7 +54,9 @@ export default function Home() {
               <li>4. Dashboards surface trends, average rating, recent reviews, and low-rating alerts.</li>
             </ol>
             <div className="mt-8 rounded-[24px] bg-amber-50 p-5 text-sm leading-7 text-amber-950">
-              Printable A6 poster route: /qr/org_demo001/svc_airport-express/a6
+              {showDemo
+                ? "Printable A6 poster route: /qr/org_demo001/svc_airport-express/a6"
+                : "Print-ready QR posters: A6 individual, A4 4-up, A3 8-up — generated server-side per service."}
             </div>
           </article>
         </section>

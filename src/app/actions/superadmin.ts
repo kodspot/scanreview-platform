@@ -21,6 +21,7 @@ import {
 } from "@/lib/repositories/users";
 import { deleteReviewsByOrganization } from "@/lib/repositories/reviews";
 import { deleteServicesAndQrByOrganization } from "@/lib/repositories/services";
+import { deleteScansByOrganization } from "@/lib/repositories/scans";
 import { createAuditLog } from "@/lib/repositories/audit-logs";
 import { hashPassword } from "@/lib/auth/password";
 import { env } from "@/lib/env";
@@ -329,6 +330,7 @@ export async function purgeArchivedOrganizationAction(formData: FormData) {
     deleteReviewsByOrganization(organization!._id as ObjectId),
     deleteServicesAndQrByOrganization(organization!._id as ObjectId),
     deleteUsersByOrganization(organization!._id as ObjectId),
+    deleteScansByOrganization(organization!._id as ObjectId),
   ]);
 
   await deleteOrganizationById(organization!._id as ObjectId);

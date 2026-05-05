@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import QRCode from "qrcode";
 import { QrPoster } from "@/components/qr/qr-poster";
 import { getPublicReviewExperience } from "@/lib/services/public-review-service";
+import { env } from "@/lib/env";
 
 export default async function QrPosterPage({
   params,
@@ -15,7 +16,7 @@ export default async function QrPosterPage({
     notFound();
   }
 
-  const targetUrl = `${process.env.APP_URL || "http://localhost:3000"}/r/${orgId}/${serviceId}`;
+  const targetUrl = `${env.appUrl}/r/${orgId}/${serviceId}`;
   const qrDataUrl = await QRCode.toDataURL(targetUrl, {
     margin: 1,
     width: 900,

@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { ReviewForm } from "@/components/reviews/review-form";
+import { ScanBeacon } from "@/components/reviews/scan-beacon";
 import { getPublicReviewExperience } from "@/lib/services/public-review-service";
 
 export default async function ReviewPage({
@@ -22,6 +23,7 @@ export default async function ReviewPage({
       }}
     >
       <div className="mx-auto max-w-xl">
+        <ScanBeacon orgId={orgId} serviceId={serviceId} />
         <div className="mb-4 rounded-[28px] border border-black/10 bg-white/80 px-5 py-4 text-sm text-slate-600 backdrop-blur">
           <div className="flex items-center justify-between gap-4">
             <div>
