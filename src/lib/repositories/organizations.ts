@@ -21,6 +21,57 @@ export async function listOrganizations() {
   return collection.find({ status: { $ne: "archived" } }).sort({ createdAt: -1 }).toArray();
 }
 
+export interface OrganizationListQuery {
+  search?: string;
+  status?: "all" | "active" | "trial" | "suspended";
+  page?: number;
+  pageSize?: number;
+}
+
+export async function listOrganizationsPaged({
+  search,
+  status = "all",
+  page = 1,
+  pageSize = 25,
+}: OrganizationListQuery = {}) {
+  const collection = await getOrganizationsCollection();
+  const safePage = Math.max(1, Math.floor(page));
+  const safeSize = Math.min(100, Math.max(1, Math.floor(pageSize)));
+
+  const filter: Record<string, unknown> = { status: { $ne: "archived" } };
+  if (status !== "all") filter.status = status;
+
+  const term = (search || "").trim();
+  if (term.length > 0) {
+    const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const rx = new RegExp(escaped, "i");
+    filter.$or = [
+      { name: { $regex: rx } },
+      { publicId: { $regex: rx } },
+      { slug: { $regex: rx } },
+      { industry: { $regex: rx } },
+    ];
+  }
+
+  const [items, total] = await Promise.all([
+    collection
+      .find(filter)
+      .sort({ createdAt: -1 })
+      .skip((safePage - 1) * safeSize)
+      .limit(safeSize)
+      .toArray(),
+    collection.countDocuments(filter),
+  ]);
+
+  return {
+    items,
+    total,
+    page: safePage,
+    pageSize: safeSize,
+    totalPages: Math.max(1, Math.ceil(total / safeSize)),
+  };
+}
+
 export async function listArchivedOrganizations() {
   const collection = await getOrganizationsCollection();
   return collection.find({ status: "archived" }).sort({ updatedAt: -1 }).toArray();

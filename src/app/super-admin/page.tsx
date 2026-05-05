@@ -1,52 +1,71 @@
+import Link from "next/link";
 import { AppShell } from "@/components/shell/app-shell";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { SectionCard } from "@/components/ui/section-card";
 import { NoticeBanner } from "@/components/ui/notice-banner";
 import { CreateOrgForm } from "@/components/super-admin/create-org-form";
-import { CreateAdminForm } from "@/components/super-admin/create-admin-form";
-import { CreateServiceForOrgForm } from "@/components/super-admin/create-service-form";
-import { ResetAdminPasswordForm } from "@/components/super-admin/reset-admin-password-form";
-import { DeleteOrgForm } from "@/components/super-admin/delete-org-form";
 import { RestoreOrgForm } from "@/components/super-admin/restore-org-form";
 import { PurgeOrgForm } from "@/components/super-admin/purge-org-form";
-import { ActionChipLink } from "@/components/super-admin/action-chip-link";
+import { OrganizationCard } from "@/components/super-admin/organization-card";
+import { OrgFilterBar } from "@/components/super-admin/org-filter-bar";
 import { requireSession } from "@/lib/auth/guards";
 import { getSuperAdminSnapshot } from "@/lib/services/dashboard-service";
 
-const STATUS_STYLES: Record<string, string> = {
-  active: "bg-emerald-50 text-emerald-700",
-  trial: "bg-amber-50 text-amber-700",
-  suspended: "bg-red-50 text-red-700",
-  archived: "bg-slate-200 text-slate-700",
-};
+export const dynamic = "force-dynamic";
+
+const STATUS_VALUES = new Set(["active", "trial", "suspended"]);
 
 export default async function SuperAdminPage({
   searchParams,
 }: {
-  searchParams: Promise<{ notice?: string; message?: string }>;
+  searchParams: Promise<{ notice?: string; message?: string; q?: string; status?: string; page?: string }>;
 }) {
   const session = await requireSession(["super_admin"]);
-  const snapshot = await getSuperAdminSnapshot();
-  const { notice, message } = await searchParams;
+  const sp = await searchParams;
+  const search = (sp.q || "").trim();
+  const status = (STATUS_VALUES.has(sp.status || "") ? sp.status : "all") as
+    | "all"
+    | "active"
+    | "trial"
+    | "suspended";
+  const page = Math.max(1, Number.parseInt(sp.page || "1", 10) || 1);
+
+  const snapshot = await getSuperAdminSnapshot({ search, status, page, pageSize: 25 });
+  const { notice, message } = sp;
+
+  function pageUrl(p: number) {
+    const q = new URLSearchParams();
+    if (search) q.set("q", search);
+    if (status && status !== "all") q.set("status", status);
+    if (p > 1) q.set("page", String(p));
+    return `/super-admin${q.toString() ? `?${q.toString()}` : ""}`;
+  }
+
+  const totalReviews = snapshot.organizations.reduce((s, r) => s + r.organization.usage.reviewCount, 0);
+  const totalScans = snapshot.scanCount;
+  const conversionPct = totalScans > 0 ? Math.min(100, (totalReviews / totalScans) * 100) : 0;
 
   return (
     <AppShell eyebrow="Platform operations" session={session} title="Super admin control center">
       {notice ? <NoticeBanner tone={notice === "success" ? "success" : "error"} message={message ?? ""} /> : null}
 
-      <div className="grid gap-5 lg:grid-cols-3">
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard helper="Provisioned tenants" label="Organizations" value={snapshot.organizationCount.toString()} />
-        <KpiCard helper="All-time captured feedback" label="Reviews" value={snapshot.reviewCount.toString()} />
+        <KpiCard helper="All-time captured feedback" label="Reviews" value={totalReviews.toString()} />
         <KpiCard helper="Tenant service inventory" label="Services" value={snapshot.serviceCount.toString()} />
+        <KpiCard
+          helper={`${totalScans} scans · ${conversionPct.toFixed(1)}% conversion`}
+          label="Engagement"
+          value={totalScans.toString()}
+        />
       </div>
 
-      <div className="mt-6">
-        <SectionCard
-          description="Soft-deleted tenants can be restored safely. Permanent purge is available when required."
-          title="Archived Organizations"
-        >
-          {snapshot.archivedOrganizations.length === 0 ? (
-            <p className="text-sm text-slate-500">No archived organizations.</p>
-          ) : (
+      {snapshot.archivedOrganizations.length > 0 ? (
+        <div className="mt-6">
+          <SectionCard
+            description="Soft-deleted tenants. Restore safely, or permanently purge when required."
+            title={`Archived (${snapshot.archivedOrganizations.length})`}
+          >
             <div className="space-y-3">
               {snapshot.archivedOrganizations.map((organization) => (
                 <div key={`archived-${organization.publicId}`} className="rounded-[16px] border border-black/10 bg-slate-50 p-4">
@@ -66,199 +85,84 @@ export default async function SuperAdminPage({
                 </div>
               ))}
             </div>
-          )}
-        </SectionCard>
-      </div>
+          </SectionCard>
+        </div>
+      ) : null}
 
       <div className="mt-6">
         <SectionCard
-          description="Provision a new tenant and assign their admin account."
+          description="Provision tenants and manage everything per-organization: admins, services, QR posters, settings, and lifecycle."
           title="Organizations"
           action={<CreateOrgForm />}
         >
-          {snapshot.organizations.length === 0 ? (
-            <div className="py-10 text-center text-sm text-slate-400">
-              No organizations yet. Create one above to get started.
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-left text-sm">
-                <thead className="text-slate-500">
-                  <tr>
-                    <th className="pb-3 pr-6 font-medium">Organization</th>
-                    <th className="pb-3 pr-6 font-medium">Industry</th>
-                    <th className="pb-3 pr-6 font-medium">Status</th>
-                    <th className="pb-3 pr-6 font-medium">Reviews</th>
-                    <th className="pb-3 font-medium">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {snapshot.organizations.map((organization) => (
-                    <tr key={organization.publicId} className="border-t border-black/5 align-top">
-                      <td className="py-4 pr-6">
-                        <p className="font-semibold text-slate-950">{organization.name}</p>
-                        <p className="text-xs uppercase tracking-[0.18em] text-slate-400 mt-0.5">
-                          {organization.publicId}
-                        </p>
-                      </td>
-                      <td className="py-4 pr-6 text-slate-600">{organization.industry}</td>
-                      <td className="py-4 pr-6">
-                        <span
-                          className={`inline-block rounded-full px-3 py-1 text-xs font-medium uppercase tracking-[0.15em] ${
-                            STATUS_STYLES[organization.status] ?? "bg-slate-100 text-slate-600"
-                          }`}
-                        >
-                          {organization.status}
-                        </span>
-                      </td>
-                      <td className="py-4 pr-6 text-slate-600">{organization.usage.reviewCount}</td>
-                      <td className="py-4">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <CreateAdminForm
-                            orgPublicId={organization.publicId}
-                            orgName={organization.name}
-                          />
-                          <CreateServiceForOrgForm orgPublicId={organization.publicId} orgName={organization.name} />
-                          <DeleteOrgForm orgName={organization.name} orgPublicId={organization.publicId} />
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </SectionCard>
-      </div>
-
-      <div className="mt-6">
-        <SectionCard
-          description="Reset organization admin credentials without exposing users to self-service password reset yet."
-          title="Admin Credentials"
-        >
           <div className="space-y-4">
-            {snapshot.organizationServices.map((group) => (
-              <div key={`${group.organizationPublicId}-admins`} className="rounded-[20px] border border-black/10 bg-slate-50 p-4">
-                <p className="text-sm font-semibold text-slate-950">{group.organizationName}</p>
-                <p className="mt-0.5 text-xs uppercase tracking-[0.15em] text-slate-400">{group.organizationPublicId}</p>
-                <div className="mt-3 space-y-2">
-                  {group.admins.length === 0 ? (
-                    <p className="text-xs text-slate-500">No admins assigned yet.</p>
+            <OrgFilterBar initialSearch={search} initialStatus={status} total={snapshot.pagination.total} />
+
+            {snapshot.organizations.length === 0 ? (
+              <div className="rounded-[20px] border border-dashed border-black/10 bg-slate-50 py-10 text-center text-sm text-slate-500">
+                {search || status !== "all"
+                  ? "No organizations match these filters."
+                  : "No organizations yet. Create one above to get started."}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {snapshot.organizations.map((row) => (
+                  <OrganizationCard
+                    key={row.organization.publicId}
+                    organization={{
+                      publicId: row.organization.publicId,
+                      name: row.organization.name,
+                      industry: row.organization.industry,
+                      status: row.organization.status,
+                      reviewCount: row.organization.usage.reviewCount,
+                      serviceCount: row.services.length,
+                      scanCount: row.scanCount,
+                      conversionRate:
+                        row.scanCount > 0
+                          ? Math.min(1, row.organization.usage.reviewCount / row.scanCount)
+                          : 0,
+                      createdAt: row.organization.createdAt
+                        ? new Date(row.organization.createdAt).toISOString()
+                        : undefined,
+                    }}
+                    admins={row.admins}
+                    services={row.services}
+                  />
+                ))}
+              </div>
+            )}
+
+            {snapshot.pagination.totalPages > 1 ? (
+              <div className="flex items-center justify-between rounded-[16px] border border-black/5 bg-slate-50 px-4 py-3 text-xs text-slate-600">
+                <span>
+                  Page <span className="font-semibold text-slate-900">{snapshot.pagination.page}</span> of{" "}
+                  <span className="font-semibold text-slate-900">{snapshot.pagination.totalPages}</span> ·{" "}
+                  {snapshot.pagination.total} total
+                </span>
+                <div className="flex items-center gap-2">
+                  {page > 1 ? (
+                    <Link
+                      className="rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-medium hover:bg-slate-100"
+                      href={pageUrl(page - 1)}
+                    >
+                      ← Prev
+                    </Link>
                   ) : (
-                    group.admins.map((admin) => (
-                      <div key={admin.id} className="rounded-[14px] border border-black/10 bg-white p-3">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <div>
-                            <p className="text-sm font-medium text-slate-900">{admin.name}</p>
-                            <p className="text-xs text-slate-500">{admin.email} · {admin.role}</p>
-                          </div>
-                          <ResetAdminPasswordForm
-                            adminEmail={admin.email}
-                            adminName={admin.name}
-                            orgPublicId={group.organizationPublicId}
-                          />
-                        </div>
-                      </div>
-                    ))
+                    <span className="rounded-full border border-black/5 bg-white/60 px-3 py-1 text-xs text-slate-300">← Prev</span>
+                  )}
+                  {page < snapshot.pagination.totalPages ? (
+                    <Link
+                      className="rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-medium hover:bg-slate-100"
+                      href={pageUrl(page + 1)}
+                    >
+                      Next →
+                    </Link>
+                  ) : (
+                    <span className="rounded-full border border-black/5 bg-white/60 px-3 py-1 text-xs text-slate-300">Next →</span>
                   )}
                 </div>
               </div>
-            ))}
-          </div>
-        </SectionCard>
-      </div>
-
-      <div className="mt-6">
-        <SectionCard
-          description="Generate review links and print assets. QR and print controls are restricted to superadmin."
-          title="QR & Print Control"
-        >
-          <div className="space-y-4">
-            {snapshot.organizationServices.map((group) => (
-              <div key={group.organizationPublicId} className="rounded-[22px] border border-black/10 bg-[linear-gradient(180deg,#f8fafc_0%,#f5f7fb_100%)] p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold text-slate-950">{group.organizationName}</p>
-                    <p className="mt-0.5 text-xs uppercase tracking-[0.15em] text-slate-400">{group.organizationPublicId}</p>
-                  </div>
-                  <span className="rounded-full border border-black/10 bg-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-                    Superadmin only
-                  </span>
-                </div>
-
-                {group.services.length === 0 ? (
-                  <p className="mt-3 text-sm text-slate-500">No services yet for this organization.</p>
-                ) : (
-                  <div className="mt-3 space-y-3">
-                    {group.services.map((service) => (
-                      <div key={service.publicId} className="rounded-[16px] border border-black/10 bg-white p-3 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
-                        <div className="flex flex-wrap items-start justify-between gap-3">
-                          <div>
-                            <p className="text-sm font-medium text-slate-900">{service.name}</p>
-                            <p className="text-xs text-slate-500">{service.category} · {service.ratingType}</p>
-                          </div>
-                          <div className="space-y-2">
-                            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">Open links</p>
-                            <div className="flex flex-wrap gap-2">
-                              <ActionChipLink
-                                href={`/r/${group.organizationPublicId}/${service.publicId}`}
-                                icon="external"
-                                label="Review"
-                                target="_blank"
-                                tone="neutral"
-                              />
-                              <ActionChipLink
-                                href={`/qr/${group.organizationPublicId}/${service.publicId}/a6`}
-                                icon="sheet"
-                                label="A6"
-                                target="_blank"
-                                tone="print"
-                              />
-                              <ActionChipLink
-                                href={`/qr/${group.organizationPublicId}/${service.publicId}/a4`}
-                                icon="sheet"
-                                label="A4 4x"
-                                target="_blank"
-                                tone="print"
-                              />
-                              <ActionChipLink
-                                href={`/qr/${group.organizationPublicId}/${service.publicId}/a3`}
-                                icon="sheet"
-                                label="A3 8x"
-                                target="_blank"
-                                tone="print"
-                              />
-                            </div>
-
-                            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">Download PDF</p>
-                            <div className="flex flex-wrap gap-2">
-                              <ActionChipLink
-                                href={`/api/super-admin/qr-pdf/${group.organizationPublicId}/${service.publicId}?size=a6`}
-                                icon="pdf"
-                                label="A6 PDF"
-                                tone="pdf"
-                              />
-                              <ActionChipLink
-                                href={`/api/super-admin/qr-pdf/${group.organizationPublicId}/${service.publicId}?size=a4`}
-                                icon="pdf"
-                                label="A4 PDF"
-                                tone="pdf"
-                              />
-                              <ActionChipLink
-                                href={`/api/super-admin/qr-pdf/${group.organizationPublicId}/${service.publicId}?size=a3`}
-                                icon="pdf"
-                                label="A3 PDF"
-                                tone="pdf"
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
+            ) : null}
           </div>
         </SectionCard>
       </div>
@@ -273,7 +177,10 @@ export default async function SuperAdminPage({
           ) : (
             <div className="space-y-2">
               {snapshot.recentAuditLogs.map((log) => (
-                <div key={log._id?.toString() || `${log.action}-${log.createdAt}`} className="rounded-[12px] border border-black/10 bg-slate-50 px-3 py-2">
+                <div
+                  key={log._id?.toString() || `${log.action}-${log.createdAt}`}
+                  className="rounded-[12px] border border-black/10 bg-slate-50 px-3 py-2"
+                >
                   <p className="text-sm font-medium text-slate-900">{log.summary}</p>
                   <p className="mt-0.5 text-xs text-slate-500">
                     {log.actor.name} ({log.actor.email}) · {new Date(log.createdAt).toLocaleString()}

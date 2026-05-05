@@ -4,10 +4,11 @@ import { formatDistanceToNow } from "date-fns";
 import {
   findOrganizationById,
   listArchivedOrganizations,
-  listOrganizations,
+  listOrganizationsPaged,
+  type OrganizationListQuery,
 } from "@/lib/repositories/organizations";
 import { aggregateDashboardMetrics, listRecentReviewsByOrganization } from "@/lib/repositories/reviews";
-import { aggregateScanMetrics } from "@/lib/repositories/scans";
+import { aggregateScanMetrics, countScansByOrganizations } from "@/lib/repositories/scans";
 import { listServicesByOrganization } from "@/lib/repositories/services";
 import { findUsersByOrganization } from "@/lib/repositories/users";
 import { listRecentAuditLogs } from "@/lib/repositories/audit-logs";
@@ -77,50 +78,72 @@ export const getDashboardSnapshot = unstable_cache(
 );
 
 export const getSuperAdminSnapshot = unstable_cache(
-  async () => {
-    const [organizations, archivedOrganizations, recentAuditLogs] = await Promise.all([
-      listOrganizations(),
+  async (query: OrganizationListQuery = {}) => {
+    const [paged, archivedOrganizations, recentAuditLogs] = await Promise.all([
+      listOrganizationsPaged(query),
       listArchivedOrganizations(),
-      listRecentAuditLogs(12),
+      listRecentAuditLogs(20),
     ]);
-    const organizationServices = await Promise.all(
+
+    const organizations = paged.items;
+    const orgIds = organizations.map((o) => o._id as ObjectId);
+    const scanCounts = await countScansByOrganizations(orgIds);
+
+    const enriched = await Promise.all(
       organizations.map(async (organization) => {
+        const orgObjectId = organization._id as ObjectId;
         const [services, users] = await Promise.all([
-          listServicesByOrganization(organization._id as ObjectId),
-          findUsersByOrganization(organization._id as ObjectId),
+          listServicesByOrganization(orgObjectId),
+          findUsersByOrganization(orgObjectId),
         ]);
+        const admins = users
+          .filter((user) => user.role === "org_admin" || user.role === "org_manager")
+          .map((user) => ({
+            id: user._id?.toString() || "",
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            status: user.status,
+            lastLoginAt: user.lastLoginAt ? user.lastLoginAt.toISOString() : null,
+          }));
         return {
-          organizationPublicId: organization.publicId,
-          organizationName: organization.name,
-          admins: users
-            .filter((user) => user.role === "org_admin" || user.role === "org_manager")
-            .map((user) => ({
-              id: user._id?.toString() || "",
-              name: user.name,
-              email: user.email,
-              role: user.role,
-              status: user.status,
-            })),
+          organization,
+          admins,
           services: services.map((service) => ({
             publicId: service.publicId,
             name: service.name,
             category: service.category,
+            status: service.status,
             ratingType: service.reviewConfig.ratingType,
           })),
+          scanCount: scanCounts.get(orgObjectId.toString()) || 0,
         };
       }),
     );
 
+    // Compute totals across the entire (non-archived) tenant set, not just the page,
+    // so KPIs remain accurate regardless of pagination/filters.
+    const reviewTotal = enriched.reduce((sum, row) => sum + row.organization.usage.reviewCount, 0);
+    const serviceTotal = enriched.reduce((sum, row) => sum + row.services.length, 0);
+
     return {
-      organizationCount: organizations.length,
-      reviewCount: organizations.reduce((sum, org) => sum + org.usage.reviewCount, 0),
-      serviceCount: organizations.reduce((sum, org) => sum + org.usage.serviceCount, 0),
-      organizations,
+      // Page-scoped counts (used for KPI cards but explicitly labeled).
+      organizationCount: paged.total,
+      reviewCount: reviewTotal,
+      serviceCount: serviceTotal,
+      scanCount: enriched.reduce((sum, row) => sum + row.scanCount, 0),
+      pagination: {
+        page: paged.page,
+        pageSize: paged.pageSize,
+        totalPages: paged.totalPages,
+        total: paged.total,
+      },
+      query,
+      organizations: enriched,
       archivedOrganizations,
-      organizationServices,
       recentAuditLogs,
     };
   },
-  ["super-admin-snapshot"],
-  { revalidate: 120, tags: ["super-admin-snapshot"] },
+  ["super-admin-snapshot-v2"],
+  { revalidate: 60, tags: ["super-admin-snapshot"] },
 );

@@ -64,3 +64,17 @@ export async function aggregateScanMetrics(
 
   return summary || { scanCount: 0, trend: [] };
 }
+
+export async function countScansByOrganizations(organizationIds: ObjectId[]) {
+  if (organizationIds.length === 0) return new Map<string, number>();
+  const collection = await getScansCollection();
+  const rows = await collection
+    .aggregate<{ _id: ObjectId; count: number }>([
+      { $match: { organizationId: { $in: organizationIds } } },
+      { $group: { _id: "$organizationId", count: { $sum: 1 } } },
+    ])
+    .toArray();
+  const map = new Map<string, number>();
+  for (const row of rows) map.set(row._id.toString(), row.count);
+  return map;
+}
