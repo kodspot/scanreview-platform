@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { AppShell } from "@/components/shell/app-shell";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { SectionCard } from "@/components/ui/section-card";
+import { NoticeBanner } from "@/components/ui/notice-banner";
 import { CreateOrgForm } from "@/components/super-admin/create-org-form";
 import { CreateAdminForm } from "@/components/super-admin/create-admin-form";
 import { CreateServiceForOrgForm } from "@/components/super-admin/create-service-form";
@@ -20,12 +20,19 @@ const STATUS_STYLES: Record<string, string> = {
   archived: "bg-slate-200 text-slate-700",
 };
 
-export default async function SuperAdminPage() {
+export default async function SuperAdminPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ notice?: string; message?: string }>;
+}) {
   const session = await requireSession(["super_admin"]);
   const snapshot = await getSuperAdminSnapshot();
+  const { notice, message } = await searchParams;
 
   return (
     <AppShell eyebrow="Platform operations" session={session} title="Super admin control center">
+      {notice ? <NoticeBanner tone={notice === "success" ? "success" : "error"} message={message ?? ""} /> : null}
+
       <div className="grid gap-5 lg:grid-cols-3">
         <KpiCard helper="Provisioned tenants" label="Organizations" value={snapshot.organizationCount.toString()} />
         <KpiCard helper="All-time captured feedback" label="Reviews" value={snapshot.reviewCount.toString()} />

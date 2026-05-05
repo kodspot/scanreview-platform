@@ -4,14 +4,16 @@ import { loginAction } from "@/app/actions/auth";
 const errors: Record<string, string> = {
   invalid_input: "Enter valid credentials.",
   invalid_credentials: "Credentials did not match an active account.",
+  session_expired: "Your session expired. Please sign in again.",
 };
 
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; next?: string }>;
 }) {
-  const { error } = await searchParams;
+  const { error, next } = await searchParams;
+  const showDefaults = process.env.NODE_ENV !== "production";
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(15,118,110,0.22),_transparent_36%),linear-gradient(180deg,#fff7ed_0%,#f8fafc_100%)] px-6 py-10 text-slate-950">
@@ -37,22 +39,30 @@ export default async function LoginPage({
           <p className="mt-3 text-sm text-slate-600">Use seeded credentials after running the seed script.</p>
 
           <form action={loginAction} className="mt-8 space-y-4">
-            <label className="block text-sm text-slate-700">
+            {next ? <input type="hidden" name="next" value={next} /> : null}
+            <label className="block text-sm text-slate-700" htmlFor="login-email">
               <span className="mb-2 block">Email</span>
               <input
+                id="login-email"
                 className="w-full rounded-[20px] border border-black/10 px-4 py-3 outline-none transition focus:border-slate-950 focus-visible:ring-2 focus-visible:ring-slate-300"
-                defaultValue="admin@kodspot-demo.com"
+                defaultValue={showDefaults ? "admin@kodspot-demo.com" : undefined}
                 name="email"
                 type="email"
+                autoComplete="email"
+                required
               />
             </label>
-            <label className="block text-sm text-slate-700">
+            <label className="block text-sm text-slate-700" htmlFor="login-password">
               <span className="mb-2 block">Password</span>
               <input
+                id="login-password"
                 className="w-full rounded-[20px] border border-black/10 px-4 py-3 outline-none transition focus:border-slate-950 focus-visible:ring-2 focus-visible:ring-slate-300"
-                defaultValue="ChangeMe123!"
+                defaultValue={showDefaults ? "ChangeMe123!" : undefined}
                 name="password"
                 type="password"
+                autoComplete="current-password"
+                minLength={8}
+                required
               />
             </label>
 

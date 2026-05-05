@@ -1,11 +1,9 @@
 import { cookies } from "next/headers";
 import { SignJWT, jwtVerify } from "jose";
-import { getRequiredEnv } from "@/lib/env";
+import { env, getRequiredEnv } from "@/lib/env";
 import { COOKIE_NAME } from "@/lib/auth/constants";
 import type { SessionUser } from "@/lib/types";
 import { z } from "zod";
-
-const SESSION_DURATION_SECONDS = 60 * 60 * 24 * 7;
 
 const sessionPayloadSchema = z.object({
   userId: z.string(),
@@ -23,7 +21,7 @@ export async function signSession(sessionUser: SessionUser) {
   return new SignJWT({ ...sessionUser })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime(`${SESSION_DURATION_SECONDS}s`)
+    .setExpirationTime(`${env.sessionDurationSeconds}s`)
     .sign(getSecret());
 }
 
@@ -53,10 +51,10 @@ export async function setSessionCookie(token: string) {
 
   cookieStore.set(COOKIE_NAME, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: env.isProduction,
     sameSite: "lax",
     path: "/",
-    maxAge: SESSION_DURATION_SECONDS,
+    maxAge: env.sessionDurationSeconds,
   });
 }
 

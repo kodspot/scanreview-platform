@@ -3,17 +3,25 @@ import { PDFDocument, rgb, StandardFonts, type PDFPage } from "pdf-lib";
 import QRCode from "qrcode";
 import { getSessionUser } from "@/lib/auth/session";
 import { createAuditLog } from "@/lib/repositories/audit-logs";
+import { incrementQrCodeDownload } from "@/lib/repositories/services";
 import { getPublicReviewExperience } from "@/lib/services/public-review-service";
+import { env } from "@/lib/env";
+
+export const runtime = "nodejs";
+// Avoid attempting to prerender this route at build time.
+export const dynamic = "force-dynamic";
 
 const MM_TO_PT = 2.8346456693;
+
+const ALLOWED_SIZES = new Set(["a3", "a4", "a6"]);
 
 function mm(value: number) {
   return value * MM_TO_PT;
 }
 
 function hexToRgb(hex: string) {
-  const normalized = hex.replace("#", "");
-  const safe = normalized.length === 6 ? normalized : "0f172a";
+  const normalized = (hex || "").replace("#", "");
+  const safe = /^[0-9a-fA-F]{6}$/.test(normalized) ? normalized : "0f172a";
   const intValue = parseInt(safe, 16);
   return {
     r: ((intValue >> 16) & 255) / 255,
@@ -41,8 +49,6 @@ type TileInput = {
   fontBold: Awaited<ReturnType<PDFDocument["embedFont"]>>;
   fontRegular: Awaited<ReturnType<PDFDocument["embedFont"]>>;
 };
-
-export const runtime = "nodejs";
 
 function drawTile(page: PDFPage, input: TileInput) {
   const primary = hexToRgb(input.primaryHex);
@@ -133,20 +139,37 @@ export async function GET(
   { params }: { params: Promise<{ orgId: string; serviceId: string }> },
 ) {
   const session = await getSessionUser();
-  if (!session || session.role !== "super_admin") {
+  if (!session) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
   const { orgId, serviceId } = await params;
-  const url = new URL(request.url);
-  const size = (url.searchParams.get("size") || "a6").toLowerCase();
 
   const experience = await getPublicReviewExperience(orgId, serviceId);
   if (!experience) {
     return NextResponse.json({ message: "Service not found" }, { status: 404 });
   }
 
-  const targetUrl = `${process.env.APP_URL || "http://localhost:3000"}/r/${orgId}/${serviceId}`;
+  // RBAC: super admins can download for any tenant; org users only for their own.
+  if (session.role !== "super_admin") {
+    const sessionOrgId = session.organizationId;
+    const targetOrgId = experience.organization._id?.toString();
+    if (!sessionOrgId || !targetOrgId || sessionOrgId !== targetOrgId) {
+      return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+    }
+  }
+
+  const url = new URL(request.url);
+  const sizeParam = (url.searchParams.get("size") || "a6").toLowerCase();
+  if (!ALLOWED_SIZES.has(sizeParam)) {
+    return NextResponse.json(
+      { message: "Invalid size. Use a3, a4, or a6." },
+      { status: 400 },
+    );
+  }
+  const size = sizeParam as "a3" | "a4" | "a6";
+
+  const targetUrl = `${env.appUrl}/r/${orgId}/${serviceId}`;
   const qrDataUrl = await QRCode.toDataURL(targetUrl, {
     margin: 1,
     width: 900,
@@ -157,6 +180,10 @@ export async function GET(
   });
 
   const pdf = await PDFDocument.create();
+  pdf.setTitle(`${experience.organization.name} — ${experience.service.name} — ${size.toUpperCase()}`);
+  pdf.setSubject("ScanReview QR poster");
+  pdf.setProducer("Kodspot ScanReview");
+  pdf.setCreator("Kodspot ScanReview");
   const fontBold = await pdf.embedFont(StandardFonts.HelveticaBold);
   const fontRegular = await pdf.embedFont(StandardFonts.Helvetica);
   const qrImage = await pdf.embedPng(dataUrlToBytes(qrDataUrl));
@@ -165,6 +192,17 @@ export async function GET(
   const serviceName = experience.service.name;
   const primaryHex = experience.organization.theme.primary;
   const accentHex = experience.organization.theme.accent;
+
+  const tileBase = {
+    orgName,
+    serviceName,
+    targetUrl,
+    primaryHex,
+    accentHex,
+    qrImage,
+    fontBold,
+    fontRegular,
+  };
 
   if (size === "a4") {
     const page = pdf.addPage([mm(210), mm(297)]);
@@ -177,20 +215,7 @@ export async function GET(
       for (let col = 0; col < 2; col += 1) {
         const x = pad + col * (tileW + gap);
         const y = mm(297) - pad - (row + 1) * tileH - row * gap;
-        drawTile(page, {
-          x,
-          y,
-          w: tileW,
-          h: tileH,
-          orgName,
-          serviceName,
-          targetUrl,
-          primaryHex,
-          accentHex,
-          qrImage,
-          fontBold,
-          fontRegular,
-        });
+        drawTile(page, { x, y, w: tileW, h: tileH, ...tileBase });
       }
     }
   } else if (size === "a3") {
@@ -204,65 +229,51 @@ export async function GET(
       for (let col = 0; col < 4; col += 1) {
         const x = pad + col * (tileW + gap);
         const y = mm(297) - pad - (row + 1) * tileH - row * gap;
-        drawTile(page, {
-          x,
-          y,
-          w: tileW,
-          h: tileH,
-          orgName,
-          serviceName,
-          targetUrl,
-          primaryHex,
-          accentHex,
-          qrImage,
-          fontBold,
-          fontRegular,
-        });
+        drawTile(page, { x, y, w: tileW, h: tileH, ...tileBase });
       }
     }
   } else {
     const page = pdf.addPage([mm(105), mm(148)]);
-    drawTile(page, {
-      x: 0,
-      y: 0,
-      w: mm(105),
-      h: mm(148),
-      orgName,
-      serviceName,
-      targetUrl,
-      primaryHex,
-      accentHex,
-      qrImage,
-      fontBold,
-      fontRegular,
-    });
+    drawTile(page, { x: 0, y: 0, w: mm(105), h: mm(148), ...tileBase });
   }
 
   const bytes = await pdf.save();
-  const filename = `${orgId}_${serviceId}_${size}.pdf`;
 
-  await createAuditLog({
-    actor: {
-      userId: session.userId,
-      name: session.name,
-      email: session.email,
-      role: session.role,
-    },
-    action: "qr.pdf_downloaded",
-    summary: `Downloaded ${size.toUpperCase()} QR PDF for ${experience.organization.name} / ${experience.service.name}`,
-    organizationPublicId: orgId,
-    metadata: {
-      serviceId,
-      size,
-    },
-    createdAt: new Date(),
-  });
+  // Best-effort tracking — never let a write error prevent the download.
+  try {
+    if (experience.qrCode?._id) {
+      await incrementQrCodeDownload(experience.qrCode._id);
+    }
+    await createAuditLog({
+      actor: {
+        userId: session.userId,
+        name: session.name,
+        email: session.email,
+        role: session.role,
+      },
+      action: "qr.pdf_downloaded",
+      summary: `Downloaded ${size.toUpperCase()} QR PDF for ${experience.organization.name} / ${experience.service.name}`,
+      organizationPublicId: orgId,
+      metadata: { serviceId, size },
+      createdAt: new Date(),
+    });
+  } catch (error) {
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("[qr-pdf] tracking failed:", error);
+    }
+  }
+
+  const filenameSafeOrg = experience.organization.slug || orgId;
+  const filenameSafeService = experience.service.slug || serviceId;
+  const filename = `${filenameSafeOrg}_${filenameSafeService}_${size}.pdf`;
 
   return new NextResponse(Buffer.from(bytes), {
     headers: {
       "Content-Type": "application/pdf",
       "Content-Disposition": `attachment; filename="${filename}"`,
+      "Content-Length": String(bytes.byteLength),
       "Cache-Control": "private, no-store",
+      "X-Content-Type-Options": "nosniff",
     },
   });
 }

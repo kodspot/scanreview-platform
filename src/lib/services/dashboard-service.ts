@@ -26,15 +26,24 @@ export const getDashboardSnapshot = unstable_cache(
       organization,
       services,
       metrics,
-      recentReviews: recentReviews.map((review) => ({
-        id: review._id?.toString(),
-        ratingValue: review.ratingValue,
-        sentiment: review.sentiment,
-        submittedAt: formatDistanceToNow(review.submittedAt, { addSuffix: true }),
-        requiresAttention: review.flags.requiresAttention,
-        answers: review.answers,
-        reviewer: review.customer.profile,
-      })),
+      recentReviews: recentReviews.map((review) => {
+        const serviceKey = review.serviceId?.toString();
+        const matchedService = services.find((service) => service._id?.toString() === serviceKey);
+        const maxRating = matchedService?.reviewConfig.maxRating ?? 5;
+        const ratingType = matchedService?.reviewConfig.ratingType ?? review.ratingType;
+        return {
+          id: review._id?.toString(),
+          ratingValue: review.ratingValue,
+          maxRating,
+          ratingType,
+          serviceName: matchedService?.name,
+          sentiment: review.sentiment,
+          submittedAt: formatDistanceToNow(review.submittedAt, { addSuffix: true }),
+          requiresAttention: review.flags.requiresAttention,
+          answers: review.answers,
+          reviewer: review.customer.profile,
+        };
+      }),
     };
   },
   ["dashboard-snapshot"],

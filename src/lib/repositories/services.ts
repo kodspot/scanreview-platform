@@ -25,6 +25,17 @@ export async function findQrCodeByService(serviceId: ObjectId) {
   return collection.findOne({ serviceId });
 }
 
+export async function incrementQrCodeDownload(qrCodeId: ObjectId) {
+  const collection = await getQrCodesCollection();
+  await collection.updateOne(
+    { _id: qrCodeId },
+    {
+      $inc: { downloadCount: 1 },
+      $set: { lastDownloadedAt: new Date(), updatedAt: new Date() },
+    },
+  );
+}
+
 export async function deleteServicesAndQrByOrganization(organizationId: ObjectId) {
   const serviceCollection = await getServicesCollection();
   const qrCollection = await getQrCodesCollection();

@@ -18,7 +18,7 @@ export default async function ReviewPage({
     <div
       className="min-h-screen px-4 py-8 sm:px-6"
       style={{
-        background: `radial-gradient(circle_at_top_left, ${experience.organization.theme.primary}20, transparent 36%), radial-gradient(circle_at_bottom_right, ${experience.organization.theme.accent}20, transparent 30%), linear-gradient(180deg, ${experience.organization.theme.surface} 0%, #ffffff 100%)`,
+        background: `radial-gradient(circle at top left, ${experience.organization.theme.primary}20, transparent 36%), radial-gradient(circle at bottom right, ${experience.organization.theme.accent}20, transparent 30%), linear-gradient(180deg, ${experience.organization.theme.surface} 0%, #ffffff 100%)`,
       }}
     >
       <div className="mx-auto max-w-xl">

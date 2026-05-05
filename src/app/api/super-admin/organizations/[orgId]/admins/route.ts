@@ -3,13 +3,14 @@ import { ObjectId } from "mongodb";
 import { z } from "zod";
 import { getSessionUser } from "@/lib/auth/session";
 import { findOrganizationByPublicId } from "@/lib/repositories/organizations";
-import { createUser, findUsersByOrganization } from "@/lib/repositories/users";
+import { createUser, findOrgAdminByEmail, findUsersByOrganization } from "@/lib/repositories/users";
 import { hashPassword } from "@/lib/auth/password";
+import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 
 const createAdminSchema = z.object({
   email: z.string().email().toLowerCase(),
   name: z.string().trim().min(2).max(120),
-  password: z.string().min(8),
+  password: z.string().min(8).max(200),
 });
 
 async function requireSuperAdmin() {
@@ -58,19 +59,40 @@ export async function POST(
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
+  const limiter = checkRateLimit(`admin-create:${session.userId}`, 10, 60_000);
+  const headers = rateLimitHeaders(limiter);
+  if (!limiter.allowed) {
+    return NextResponse.json({ message: "Too many requests" }, { status: 429, headers });
+  }
+
   const { orgId } = await params;
   const organization = await findOrganizationByPublicId(orgId);
 
   if (!organization) {
-    return NextResponse.json({ message: "Organization not found" }, { status: 404 });
+    return NextResponse.json({ message: "Organization not found" }, { status: 404, headers });
   }
 
-  const payload = createAdminSchema.safeParse(await request.json());
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ message: "Invalid JSON body" }, { status: 400, headers });
+  }
+
+  const payload = createAdminSchema.safeParse(body);
 
   if (!payload.success) {
     return NextResponse.json(
       { message: "Invalid payload", errors: payload.error.flatten() },
-      { status: 400 },
+      { status: 400, headers },
+    );
+  }
+
+  const existing = await findOrgAdminByEmail(organization._id as ObjectId, payload.data.email);
+  if (existing) {
+    return NextResponse.json(
+      { message: "An admin with this email already exists" },
+      { status: 409, headers },
     );
   }
 
@@ -98,6 +120,6 @@ export async function POST(
         status: "active",
       },
     },
-    { status: 201 },
+    { status: 201, headers },
   );
 }

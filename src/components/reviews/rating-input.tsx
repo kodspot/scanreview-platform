@@ -14,7 +14,7 @@ export function RatingInput({ ratingType, maxRating, value, onChange }: RatingIn
   const options = Array.from({ length: maxRating }, (_, index) => index + 1);
 
   return (
-    <div className="grid grid-cols-5 gap-3">
+    <div className="grid grid-cols-5 gap-3" role="radiogroup" aria-label="Rating">
       {options.map((option) => {
         const label =
           ratingType === "emoji"
@@ -23,9 +23,19 @@ export function RatingInput({ ratingType, maxRating, value, onChange }: RatingIn
               ? `${option}★`
               : option.toString();
 
+        const ariaLabel =
+          ratingType === "emoji"
+            ? `Rate ${option} of ${maxRating}`
+            : ratingType === "stars"
+              ? `${option} ${option === 1 ? "star" : "stars"} out of ${maxRating}`
+              : `${option} of ${maxRating}`;
+
         return (
           <button
             key={option}
+            role="radio"
+            aria-checked={value === option}
+            aria-label={ariaLabel}
             className={cn(
               "rounded-[22px] border px-3 py-4 text-center text-lg font-medium transition",
               value === option

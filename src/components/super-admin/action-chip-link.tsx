@@ -1,5 +1,4 @@
 import Link from "next/link";
-import type { ReactNode } from "react";
 
 type ChipTone = "neutral" | "print" | "pdf";
 type ChipIcon = "external" | "sheet" | "pdf";

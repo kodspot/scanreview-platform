@@ -1,12 +1,22 @@
 import { KpiCard } from "@/components/ui/kpi-card";
 import { SectionCard } from "@/components/ui/section-card";
 import { AppShell } from "@/components/shell/app-shell";
+import { ActionChipLink } from "@/components/super-admin/action-chip-link";
+import { CreateServiceForm } from "@/components/dashboard/create-service-form";
+import { NoticeBanner } from "@/components/ui/notice-banner";
 import { requireSession } from "@/lib/auth/guards";
 import { getDashboardSnapshot } from "@/lib/services/dashboard-service";
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ notice?: string; message?: string }>;
+}) {
   const session = await requireSession(["org_admin", "org_manager", "org_analyst"]);
   const snapshot = await getDashboardSnapshot(session.organizationId || "", {});
+  const { notice, message } = await searchParams;
+  const orgPublicId = snapshot.organization?.publicId;
+  const canManageServices = session.role === "org_admin" || session.role === "org_manager";
 
   return (
     <AppShell
@@ -14,6 +24,8 @@ export default async function DashboardPage() {
       session={session}
       title="Review operations dashboard"
     >
+      {notice ? <NoticeBanner tone={notice === "success" ? "success" : "error"} message={message ?? ""} /> : null}
+
       <div className="grid gap-5 lg:grid-cols-3">
         <KpiCard helper="Across the current tenant scope" label="Average rating" value={snapshot.metrics.averageRating.toFixed(2)} />
         <KpiCard helper="Total captured submissions" label="Reviews" value={snapshot.metrics.reviewCount.toString()} />
@@ -21,10 +33,14 @@ export default async function DashboardPage() {
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-        <SectionCard description="Active services for this organization." title="Services">
+        <SectionCard
+          description="Active services for this organization."
+          title="Services"
+          action={canManageServices ? <CreateServiceForm /> : undefined}
+        >
           {snapshot.services.length === 0 ? (
             <div className="py-8 text-center text-sm text-slate-400">
-              No services available yet. Contact superadmin to provision services and QR print assets.
+              No services available yet. {canManageServices ? "Create one above to get started." : "Contact your admin to provision services."}
             </div>
           ) : (
             <div className="space-y-3">
@@ -42,6 +58,41 @@ export default async function DashboardPage() {
                   <div className="mt-3 border-t border-black/5 pt-3 text-xs text-slate-500">
                     Service ID: <span className="font-medium text-slate-700">{service.publicId}</span>
                   </div>
+                  {orgPublicId ? (
+                    <div className="mt-3 space-y-2">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">Open links</p>
+                      <div className="flex flex-wrap gap-2">
+                        <ActionChipLink
+                          href={`/r/${orgPublicId}/${service.publicId}`}
+                          icon="external"
+                          label="Review page"
+                          target="_blank"
+                          tone="neutral"
+                        />
+                      </div>
+                      <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">Download printable QR</p>
+                      <div className="flex flex-wrap gap-2">
+                        <ActionChipLink
+                          href={`/api/super-admin/qr-pdf/${orgPublicId}/${service.publicId}?size=a6`}
+                          icon="pdf"
+                          label="A6"
+                          tone="pdf"
+                        />
+                        <ActionChipLink
+                          href={`/api/super-admin/qr-pdf/${orgPublicId}/${service.publicId}?size=a4`}
+                          icon="pdf"
+                          label="A4 (4x)"
+                          tone="pdf"
+                        />
+                        <ActionChipLink
+                          href={`/api/super-admin/qr-pdf/${orgPublicId}/${service.publicId}?size=a3`}
+                          icon="pdf"
+                          label="A3 (8x)"
+                          tone="pdf"
+                        />
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
               ))}
             </div>
@@ -57,7 +108,10 @@ export default async function DashboardPage() {
                 <div key={review.id} className="rounded-[22px] border border-black/10 bg-white p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-semibold text-slate-950">{review.ratingValue.toFixed(1)} / 5</p>
+                      <p className="font-semibold text-slate-950">
+                        {review.ratingValue.toFixed(1)} / {review.maxRating}
+                        {review.serviceName ? <span className="ml-2 text-xs font-normal text-slate-500">· {review.serviceName}</span> : null}
+                      </p>
                       <p className="text-xs text-slate-500 mt-0.5">{review.submittedAt}</p>
                     </div>
                     <span className={`rounded-full px-3 py-1 text-xs font-medium uppercase tracking-[0.15em] ${review.requiresAttention ? "bg-red-50 text-red-700" : review.sentiment === "positive" ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>
@@ -82,9 +136,6 @@ export default async function DashboardPage() {
                       {review.reviewer?.phone ? <p>Phone: {review.reviewer.phone}</p> : null}
                     </div>
                   ) : null}
-                  <div className="mt-3 border-t border-black/5 pt-3 text-xs text-slate-500">
-                    Captured {review.submittedAt}
-                  </div>
                 </div>
               ))}
             </div>

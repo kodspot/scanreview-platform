@@ -5,6 +5,18 @@ import { authenticateUser, authenticateSuperAdminByKey } from "@/lib/services/au
 import { clearSessionCookie, setSessionCookie, signSession } from "@/lib/auth/session";
 import { loginSchema } from "@/lib/validation/auth";
 
+const ALLOWED_NEXT_PREFIXES = ["/dashboard", "/super-admin"];
+
+function safeNext(value: FormDataEntryValue | null): string | null {
+  if (typeof value !== "string" || !value) return null;
+  if (!value.startsWith("/")) return null;
+  if (value.startsWith("//")) return null;
+  if (!ALLOWED_NEXT_PREFIXES.some((p) => value === p || value.startsWith(`${p}/`))) {
+    return null;
+  }
+  return value;
+}
+
 export async function loginAction(formData: FormData) {
   const parsed = loginSchema.safeParse({
     email: formData.get("email"),
@@ -23,6 +35,11 @@ export async function loginAction(formData: FormData) {
 
   const token = await signSession(sessionUser);
   await setSessionCookie(token);
+
+  const requestedNext = safeNext(formData.get("next"));
+  if (requestedNext) {
+    redirect(requestedNext);
+  }
 
   redirect(sessionUser.role === "super_admin" ? "/super-admin" : "/dashboard");
 }

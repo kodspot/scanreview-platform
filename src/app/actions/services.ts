@@ -25,11 +25,15 @@ export async function createServiceAction(formData: FormData) {
   const category = (formData.get("category") as string | null)?.trim();
   const ratingType = (formData.get("ratingType") as string) || "stars";
 
-  if (!name || !category) return;
+  if (!name || !category) {
+    redirect("/dashboard?notice=error&message=Name+and+category+required");
+  }
 
   const orgObjectId = new ObjectId(session.organizationId!);
   const organization = await findOrganizationById(orgObjectId);
-  if (!organization) return;
+  if (!organization) {
+    redirect("/dashboard?notice=error&message=Organization+not+found");
+  }
 
   const now = new Date();
   const servicePublicId = createPublicId("svc");
@@ -44,13 +48,13 @@ export async function createServiceAction(formData: FormData) {
   const service: Omit<Service, "_id"> = {
     organizationId: orgObjectId,
     publicId: servicePublicId,
-    slug: toSlug(name),
-    name,
-    category,
+    slug: toSlug(name!),
+    name: name!,
+    category: category!,
     status: "active",
     reviewConfig: {
       ...ratingConfig,
-      promptTitle: `How was your ${name}?`,
+      promptTitle: `How was your ${name!}?`,
       promptDescription: "Share quick feedback — it only takes 10 seconds.",
       thankYouTitle: "Thank you for your feedback!",
       thankYouMessage: "Your response has been recorded and will help us improve.",
@@ -74,7 +78,7 @@ export async function createServiceAction(formData: FormData) {
     publicId: createPublicId("qr"),
     shortCode: servicePublicId,
     targetUrl,
-    design: { label: name, variant: "classic" },
+    design: { label: name!, variant: "classic" },
     printTemplateVersion: "v1",
     downloadCount: 0,
     createdAt: now,
@@ -89,6 +93,7 @@ export async function createServiceAction(formData: FormData) {
     qrCount: 1,
   });
 
-  revalidateTag("dashboard-snapshot", {});
-  revalidateTag("super-admin-snapshot", {});
+  revalidateTag("dashboard-snapshot", 'max');
+  revalidateTag("super-admin-snapshot", 'max');
+  redirect(`/dashboard?notice=success&message=Service+${encodeURIComponent(name!)}+created`);
 }

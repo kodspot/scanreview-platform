@@ -168,7 +168,9 @@ export function ReviewForm({
       className="rounded-[32px] bg-white p-6 shadow-[0_24px_80px_rgba(15,23,42,0.18)] sm:p-8"
       onSubmit={handleSubmit}
       style={{ backgroundColor: theme.surface, color: theme.text }}
+      noValidate
     >
+      <fieldset disabled={submission.status === "submitting"} className="contents">
       <div className="rounded-[24px] border border-black/10 bg-white/80 p-5">
         <p className="text-xs uppercase tracking-[0.28em] text-slate-500">{organizationName}</p>
         <h1 className="mt-3 text-3xl font-semibold text-slate-950">{reviewConfig.promptTitle}</h1>
@@ -204,33 +206,44 @@ export function ReviewForm({
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Optional contact details</p>
           <p className="mt-1 text-xs text-slate-500">Share if you want the team to follow up with you.</p>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
-            <label className="block text-sm text-slate-700 sm:col-span-2">
+            <label className="block text-sm text-slate-700 sm:col-span-2" htmlFor="reviewer-name">
               <span className="mb-1.5 block">Your name (optional)</span>
               <input
+                id="reviewer-name"
                 className="w-full rounded-[14px] border border-black/10 bg-white px-3 py-2.5 outline-none transition focus:border-slate-900"
                 onChange={(event) => setReviewerName(event.target.value)}
                 placeholder="Jane Smith"
                 type="text"
+                autoComplete="name"
+                maxLength={120}
                 value={reviewerName}
               />
             </label>
-            <label className="block text-sm text-slate-700">
+            <label className="block text-sm text-slate-700" htmlFor="reviewer-email">
               <span className="mb-1.5 block">Email (optional)</span>
               <input
+                id="reviewer-email"
                 className="w-full rounded-[14px] border border-black/10 bg-white px-3 py-2.5 outline-none transition focus:border-slate-900"
                 onChange={(event) => setReviewerEmail(event.target.value)}
                 placeholder="name@email.com"
                 type="email"
+                inputMode="email"
+                autoComplete="email"
+                maxLength={200}
                 value={reviewerEmail}
               />
             </label>
-            <label className="block text-sm text-slate-700">
+            <label className="block text-sm text-slate-700" htmlFor="reviewer-phone">
               <span className="mb-1.5 block">Phone (optional)</span>
               <input
+                id="reviewer-phone"
                 className="w-full rounded-[14px] border border-black/10 bg-white px-3 py-2.5 outline-none transition focus:border-slate-900"
                 onChange={(event) => setReviewerPhone(event.target.value)}
                 placeholder="+91 98XXXXXX12"
-                type="text"
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
+                maxLength={32}
                 value={reviewerPhone}
               />
             </label>
@@ -239,7 +252,7 @@ export function ReviewForm({
       </div>
 
       {submission.status === "error" ? (
-        <p className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{submission.message}</p>
+        <p role="alert" aria-live="assertive" className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{submission.message}</p>
       ) : null}
 
       <button
@@ -250,6 +263,7 @@ export function ReviewForm({
       >
         {submission.status === "submitting" ? "Sending review..." : "Submit review"}
       </button>
+      </fieldset>
     </form>
   );
 }

@@ -61,9 +61,11 @@ export async function createOrganizationAction(formData: FormData) {
   const name = (formData.get("name") as string | null)?.trim();
   const industry = (formData.get("industry") as string | null)?.trim();
 
-  if (!name || !industry) return;
+  if (!name || !industry) {
+    redirect("/super-admin?notice=error&message=Missing+name+or+industry");
+  }
 
-  const organization = await createTenant(name, industry);
+  const organization = await createTenant(name!, industry!);
   await logSuperAdminAction(
     actor,
     "organization.created",
@@ -71,7 +73,8 @@ export async function createOrganizationAction(formData: FormData) {
     organization.publicId,
     { industry: organization.industry },
   );
-  revalidateTag("super-admin-snapshot", {});
+  revalidateTag("super-admin-snapshot", 'max');
+  redirect(`/super-admin?notice=success&message=Organization+${encodeURIComponent(organization.name)}+created`);
 }
 
 export async function createOrgAdminAction(formData: FormData) {
@@ -82,17 +85,29 @@ export async function createOrgAdminAction(formData: FormData) {
   const name = (formData.get("name") as string | null)?.trim();
   const password = formData.get("password") as string | null;
 
-  if (!orgPublicId || !email || !name || !password) return;
+  if (!orgPublicId || !email || !name || !password) {
+    redirect("/super-admin?notice=error&message=All+fields+required");
+  }
+  if (password!.length < 8) {
+    redirect("/super-admin?notice=error&message=Password+must+be+8%2B+characters");
+  }
 
-  const organization = await findOrganizationByPublicId(orgPublicId);
-  if (!organization) return;
+  const organization = await findOrganizationByPublicId(orgPublicId!);
+  if (!organization) {
+    redirect("/super-admin?notice=error&message=Organization+not+found");
+  }
+
+  const existing = await findOrgAdminByEmail(organization!._id as ObjectId, email!);
+  if (existing) {
+    redirect("/super-admin?notice=error&message=An+admin+with+this+email+already+exists");
+  }
 
   const now = new Date();
   await createUser({
-    organizationId: organization._id as ObjectId,
-    email,
-    name,
-    passwordHash: await hashPassword(password),
+    organizationId: organization!._id as ObjectId,
+    email: email!,
+    name: name!,
+    passwordHash: await hashPassword(password!),
     role: "org_admin",
     status: "active",
     createdAt: now,
@@ -102,12 +117,13 @@ export async function createOrgAdminAction(formData: FormData) {
   await logSuperAdminAction(
     actor,
     "admin.created",
-    `Created admin ${email} for ${organization.name}`,
-    organization.publicId,
-    { email },
+    `Created admin ${email} for ${organization!.name}`,
+    organization!.publicId,
+    { email: email! },
   );
 
-  revalidateTag("super-admin-snapshot", {});
+  revalidateTag("super-admin-snapshot", 'max');
+  redirect(`/super-admin?notice=success&message=Admin+${encodeURIComponent(email!)}+created`);
 }
 
 export async function createServiceForOrgAction(formData: FormData) {
@@ -118,10 +134,14 @@ export async function createServiceForOrgAction(formData: FormData) {
   const category = (formData.get("category") as string | null)?.trim();
   const ratingType = ((formData.get("ratingType") as string | null) || "stars").trim();
 
-  if (!orgPublicId || !name || !category) return;
+  if (!orgPublicId || !name || !category) {
+    redirect("/super-admin?notice=error&message=Missing+service+fields");
+  }
 
-  const organization = await findOrganizationByPublicId(orgPublicId);
-  if (!organization?._id) return;
+  const organization = await findOrganizationByPublicId(orgPublicId!);
+  if (!organization?._id) {
+    redirect("/super-admin?notice=error&message=Organization+not+found");
+  }
 
   const now = new Date();
   const servicePublicId = createPublicId("svc");
@@ -134,15 +154,15 @@ export async function createServiceForOrgAction(formData: FormData) {
   const ratingConfig = ratingDefaults[ratingType as keyof typeof ratingDefaults] ?? ratingDefaults.stars;
 
   const service: Omit<Service, "_id"> = {
-    organizationId: organization._id,
+    organizationId: organization!._id as ObjectId,
     publicId: servicePublicId,
-    slug: toSlug(name),
-    name,
-    category,
+    slug: toSlug(name!),
+    name: name!,
+    category: category!,
     status: "active",
     reviewConfig: {
       ...ratingConfig,
-      promptTitle: `How was your ${name}?`,
+      promptTitle: `How was your ${name!}?`,
       promptDescription: "Share quick feedback - it only takes 10 seconds.",
       thankYouTitle: "Thank you for your feedback!",
       thankYouMessage: "Your response has been recorded and will help us improve.",
@@ -157,12 +177,12 @@ export async function createServiceForOrgAction(formData: FormData) {
   const result = await services.insertOne(service as Service);
 
   const qrAsset: Omit<QrCodeAsset, "_id"> = {
-    organizationId: organization._id,
+    organizationId: organization!._id as ObjectId,
     serviceId: result.insertedId,
     publicId: createPublicId("qr"),
     shortCode: servicePublicId,
     targetUrl: `${env.appUrl}/r/${orgPublicId}/${servicePublicId}`,
-    design: { label: name, variant: "classic" },
+    design: { label: name!, variant: "classic" },
     printTemplateVersion: "v1",
     downloadCount: 0,
     createdAt: now,
@@ -172,7 +192,7 @@ export async function createServiceForOrgAction(formData: FormData) {
   const qrCodes = await getCollection<QrCodeAsset>("qr_codes");
   await qrCodes.insertOne(qrAsset as QrCodeAsset);
 
-  await incrementOrganizationUsage(organization._id, {
+  await incrementOrganizationUsage(organization!._id as ObjectId, {
     serviceCount: 1,
     qrCount: 1,
   });
@@ -180,13 +200,14 @@ export async function createServiceForOrgAction(formData: FormData) {
   await logSuperAdminAction(
     actor,
     "service.created",
-    `Created service ${name} for ${organization.name}`,
-    organization.publicId,
-    { servicePublicId, category, ratingType },
+    `Created service ${name!} for ${organization!.name}`,
+    organization!.publicId,
+    { servicePublicId, category: category!, ratingType },
   );
 
-  revalidateTag("super-admin-snapshot", {});
-  revalidateTag("dashboard-snapshot", {});
+  revalidateTag("super-admin-snapshot", 'max');
+  revalidateTag("dashboard-snapshot", 'max');
+  redirect(`/super-admin?notice=success&message=Service+${encodeURIComponent(name!)}+created`);
 }
 
 export async function resetOrgAdminPasswordAction(formData: FormData) {
@@ -197,27 +218,32 @@ export async function resetOrgAdminPasswordAction(formData: FormData) {
   const password = (formData.get("password") as string | null)?.trim();
 
   if (!orgPublicId || !email || !password || password.length < 8) {
-    return;
+    redirect("/super-admin?notice=error&message=All+fields+required+(password+8%2B+chars)");
   }
 
-  const organization = await findOrganizationByPublicId(orgPublicId);
-  if (!organization?._id) return;
+  const organization = await findOrganizationByPublicId(orgPublicId!);
+  if (!organization?._id) {
+    redirect("/super-admin?notice=error&message=Organization+not+found");
+  }
 
-  const adminUser = await findOrgAdminByEmail(organization._id, email);
-  if (!adminUser?._id) return;
+  const adminUser = await findOrgAdminByEmail(organization!._id as ObjectId, email!);
+  if (!adminUser?._id) {
+    redirect("/super-admin?notice=error&message=Admin+not+found");
+  }
 
-  const passwordHash = await hashPassword(password);
-  await updateUserPassword(adminUser._id as ObjectId, passwordHash);
+  const passwordHash = await hashPassword(password!);
+  await updateUserPassword(adminUser!._id as ObjectId, passwordHash);
 
   await logSuperAdminAction(
     actor,
     "admin.password_reset",
     `Reset password for ${email}`,
-    organization.publicId,
-    { email },
+    organization!.publicId,
+    { email: email! },
   );
 
-  revalidateTag("super-admin-snapshot", {});
+  revalidateTag("super-admin-snapshot", 'max');
+  redirect(`/super-admin?notice=success&message=Password+reset+for+${encodeURIComponent(email!)}`);
 }
 
 export async function deleteOrganizationAction(formData: FormData) {
@@ -227,51 +253,61 @@ export async function deleteOrganizationAction(formData: FormData) {
   const confirmPublicId = (formData.get("confirmPublicId") as string | null)?.trim();
 
   if (!orgPublicId || !confirmPublicId || orgPublicId !== confirmPublicId) {
-    return;
+    redirect("/super-admin?notice=error&message=Public+ID+confirmation+did+not+match");
   }
 
-  const organization = await findOrganizationByPublicId(orgPublicId);
-  if (!organization?._id) return;
+  const organization = await findOrganizationByPublicId(orgPublicId!);
+  if (!organization?._id) {
+    redirect("/super-admin?notice=error&message=Organization+not+found");
+  }
 
-  if (organization.status === "archived") return;
+  if (organization!.status === "archived") {
+    redirect("/super-admin?notice=error&message=Organization+already+archived");
+  }
 
-  await archiveOrganizationById(organization._id, {
+  await archiveOrganizationById(organization!._id as ObjectId, {
     at: new Date(),
     byUserId: actor.userId,
     byName: actor.name,
-    previousStatus: organization.status,
+    previousStatus: organization!.status,
   });
 
   await logSuperAdminAction(
     actor,
     "organization.archived",
-    `Archived organization ${organization.name}`,
-    organization.publicId,
+    `Archived organization ${organization!.name}`,
+    organization!.publicId,
   );
 
-  revalidateTag("super-admin-snapshot", {});
-  revalidateTag("dashboard-snapshot", {});
+  revalidateTag("super-admin-snapshot", 'max');
+  revalidateTag("dashboard-snapshot", 'max');
+  redirect(`/super-admin?notice=success&message=Archived+${encodeURIComponent(organization!.name)}`);
 }
 
 export async function restoreOrganizationAction(formData: FormData) {
   const actor = await requireSuperAdmin();
 
   const orgPublicId = (formData.get("orgPublicId") as string | null)?.trim();
-  if (!orgPublicId) return;
+  if (!orgPublicId) {
+    redirect("/super-admin?notice=error&message=Missing+organization+id");
+  }
 
-  const organization = await findOrganizationByPublicId(orgPublicId);
-  if (!organization?._id || organization.status !== "archived") return;
+  const organization = await findOrganizationByPublicId(orgPublicId!);
+  if (!organization?._id || organization.status !== "archived") {
+    redirect("/super-admin?notice=error&message=Organization+not+archived");
+  }
 
-  await restoreOrganizationById(organization._id);
+  await restoreOrganizationById(organization!._id as ObjectId);
   await logSuperAdminAction(
     actor,
     "organization.restored",
-    `Restored organization ${organization.name}`,
-    organization.publicId,
+    `Restored organization ${organization!.name}`,
+    organization!.publicId,
   );
 
-  revalidateTag("super-admin-snapshot", {});
-  revalidateTag("dashboard-snapshot", {});
+  revalidateTag("super-admin-snapshot", 'max');
+  revalidateTag("dashboard-snapshot", 'max');
+  redirect(`/super-admin?notice=success&message=Restored+${encodeURIComponent(organization!.name)}`);
 }
 
 export async function purgeArchivedOrganizationAction(formData: FormData) {
@@ -281,26 +317,29 @@ export async function purgeArchivedOrganizationAction(formData: FormData) {
   const confirmPublicId = (formData.get("confirmPublicId") as string | null)?.trim();
 
   if (!orgPublicId || !confirmPublicId || orgPublicId !== confirmPublicId) {
-    return;
+    redirect("/super-admin?notice=error&message=Public+ID+confirmation+did+not+match");
   }
 
-  const organization = await findOrganizationByPublicId(orgPublicId);
-  if (!organization?._id || organization.status !== "archived") return;
+  const organization = await findOrganizationByPublicId(orgPublicId!);
+  if (!organization?._id || organization.status !== "archived") {
+    redirect("/super-admin?notice=error&message=Only+archived+organizations+can+be+purged");
+  }
 
   await Promise.all([
-    deleteReviewsByOrganization(organization._id),
-    deleteServicesAndQrByOrganization(organization._id),
-    deleteUsersByOrganization(organization._id),
+    deleteReviewsByOrganization(organization!._id as ObjectId),
+    deleteServicesAndQrByOrganization(organization!._id as ObjectId),
+    deleteUsersByOrganization(organization!._id as ObjectId),
   ]);
 
-  await deleteOrganizationById(organization._id);
+  await deleteOrganizationById(organization!._id as ObjectId);
   await logSuperAdminAction(
     actor,
     "organization.purged",
-    `Purged organization ${organization.name}`,
-    organization.publicId,
+    `Purged organization ${organization!.name}`,
+    organization!.publicId,
   );
 
-  revalidateTag("super-admin-snapshot", {});
-  revalidateTag("dashboard-snapshot", {});
+  revalidateTag("super-admin-snapshot", 'max');
+  revalidateTag("dashboard-snapshot", 'max');
+  redirect(`/super-admin?notice=success&message=Purged+${encodeURIComponent(organization!.name)}`);
 }
