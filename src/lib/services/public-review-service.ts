@@ -1,4 +1,5 @@
 import { unstable_cache } from "next/cache";
+import { revalidateTag } from "next/cache";
 import { ObjectId } from "mongodb";
 import {
   findOrganizationByPublicId,
@@ -133,6 +134,15 @@ export async function submitPublicReview(
     reviewCount: 1,
     lastReviewAt: new Date(),
   });
+
+  // Bust analytics caches so the new review shows up immediately on the
+  // org dashboard and super-admin panel without waiting for the 60-90s TTL.
+  try {
+    revalidateTag("dashboard-snapshot", "max");
+    revalidateTag("super-admin-snapshot", "max");
+  } catch {
+    // revalidateTag may throw outside a request context; safe to ignore.
+  }
 
   return {
     thankYouTitle: reviewConfig.thankYouTitle,
