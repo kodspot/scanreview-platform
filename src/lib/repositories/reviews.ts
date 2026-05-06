@@ -17,6 +17,24 @@ export async function deleteReviewsByOrganization(organizationId: ObjectId) {
   return collection.deleteMany({ organizationId });
 }
 
+export async function countReviewsByOrganizations(
+  organizationIds: ObjectId[],
+): Promise<Map<string, number>> {
+  const result = new Map<string, number>();
+  if (organizationIds.length === 0) return result;
+  const collection = await getReviewsCollection();
+  const rows = await collection
+    .aggregate<{ _id: ObjectId; count: number }>([
+      { $match: { organizationId: { $in: organizationIds } } },
+      { $group: { _id: "$organizationId", count: { $sum: 1 } } },
+    ])
+    .toArray();
+  for (const row of rows) {
+    result.set(row._id.toString(), row.count);
+  }
+  return result;
+}
+
 export async function listRecentReviewsByOrganization(
   organizationId: ObjectId,
   filters: DashboardFilters,

@@ -10,6 +10,9 @@ import { NoticeBanner } from "@/components/ui/notice-banner";
 import { requireSession } from "@/lib/auth/guards";
 import { getDashboardSnapshot } from "@/lib/services/dashboard-service";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function DashboardPage({
   searchParams,
 }: {

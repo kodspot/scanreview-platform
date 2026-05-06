@@ -40,6 +40,7 @@ export async function POST(request: Request) {
     );
   } catch (error) {
     if (error instanceof ZodError) {
+      console.warn("[review.invalid]", error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; "));
       return NextResponse.json(
         { message: "Invalid review submission", issues: error.issues },
         { status: 400, headers },
@@ -48,6 +49,7 @@ export async function POST(request: Request) {
 
     const message = error instanceof Error ? error.message : "Unable to submit review";
     const status = message === "Service not found" ? 404 : 400;
+    console.warn("[review.failed]", message);
     return NextResponse.json({ message }, { status, headers });
   }
 }

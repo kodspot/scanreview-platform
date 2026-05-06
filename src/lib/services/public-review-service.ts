@@ -135,6 +135,19 @@ export async function submitPublicReview(
     lastReviewAt: new Date(),
   });
 
+  // Diagnostic so operators can confirm the write in serverless logs.
+  // Production-safe: contains no PII, only opaque ids and rating.
+  console.info(
+    "[review.created]",
+    JSON.stringify({
+      orgPublicId: organization.publicId,
+      servicePublicId: service.publicId,
+      ratingValue: review.ratingValue,
+      sentiment: review.sentiment,
+      requiresAttention: review.flags.requiresAttention,
+    }),
+  );
+
   // Bust analytics caches so the new review shows up immediately on the
   // org dashboard and super-admin panel without waiting for the 60-90s TTL.
   try {

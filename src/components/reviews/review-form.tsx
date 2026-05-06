@@ -19,19 +19,40 @@ type SubmissionState =
   | { status: "success"; title: string; message: string }
   | { status: "error"; message: string };
 
+function RequiredMark() {
+  return (
+    <span aria-hidden="true" className="ml-1 text-rose-500">
+      *
+    </span>
+  );
+}
+
 function QuestionField({
   question,
   value,
+  invalid,
   onChange,
 }: {
   question: ReviewQuestion;
   value: string | boolean | undefined;
+  invalid: boolean;
   onChange: (questionId: string, nextValue: string | boolean) => void;
 }) {
+  const labelEl = (
+    <span className="mb-2 block">
+      {question.label}
+      {question.required ? <RequiredMark /> : null}
+    </span>
+  );
+  const baseInput = `w-full rounded-[20px] border bg-white px-4 py-3 outline-none transition ${invalid ? "border-rose-400 ring-1 ring-rose-200" : "border-black/10"}`;
+
   if (question.type === "boolean") {
     return (
-      <label className="flex items-center justify-between rounded-[22px] border border-black/10 bg-white px-4 py-3 text-sm text-slate-700">
-        <span>{question.label}</span>
+      <label className={`flex items-center justify-between rounded-[22px] border bg-white px-4 py-3 text-sm text-slate-700 ${invalid ? "border-rose-400 ring-1 ring-rose-200" : "border-black/10"}`}>
+        <span>
+          {question.label}
+          {question.required ? <RequiredMark /> : null}
+        </span>
         <input
           checked={Boolean(value)}
           className="h-4 w-4"
@@ -45,9 +66,11 @@ function QuestionField({
   if (question.type === "select") {
     return (
       <label className="block text-sm text-slate-700">
-        <span className="mb-2 block">{question.label}</span>
+        {labelEl}
         <select
-          className="w-full rounded-[20px] border border-black/10 bg-white px-4 py-3 outline-none"
+          aria-required={question.required || undefined}
+          aria-invalid={invalid || undefined}
+          className={baseInput}
           onChange={(event) => onChange(question.id, event.target.value)}
           value={typeof value === "string" ? value : ""}
         >
@@ -61,9 +84,11 @@ function QuestionField({
   if (question.type === "textarea") {
     return (
       <label className="block text-sm text-slate-700">
-        <span className="mb-2 block">{question.label}</span>
+        {labelEl}
         <textarea
-          className="min-h-28 w-full rounded-[20px] border border-black/10 bg-white px-4 py-3 outline-none"
+          aria-required={question.required || undefined}
+          aria-invalid={invalid || undefined}
+          className={`min-h-28 ${baseInput}`}
           onChange={(event) => onChange(question.id, event.target.value)}
           placeholder={question.placeholder}
           value={typeof value === "string" ? value : ""}
@@ -74,9 +99,11 @@ function QuestionField({
 
   return (
     <label className="block text-sm text-slate-700">
-      <span className="mb-2 block">{question.label}</span>
+      {labelEl}
       <input
-        className="w-full rounded-[20px] border border-black/10 bg-white px-4 py-3 outline-none"
+        aria-required={question.required || undefined}
+        aria-invalid={invalid || undefined}
+        className={baseInput}
         onChange={(event) => onChange(question.id, event.target.value)}
         placeholder={question.placeholder}
         type="text"
@@ -99,6 +126,7 @@ export function ReviewForm({
   const [reviewerName, setReviewerName] = useState("");
   const [reviewerEmail, setReviewerEmail] = useState("");
   const [reviewerPhone, setReviewerPhone] = useState("");
+  const [missing, setMissing] = useState<Set<string>>(new Set());
   const [submission, setSubmission] = useState<SubmissionState>({ status: "idle" });
 
   const questions = useMemo(() => {
@@ -111,6 +139,32 @@ export function ReviewForm({
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    // Client-side guard: catch missing required answers before round-tripping
+    // to the server so customers see exactly which field to fix.
+    const missingIds = new Set<string>();
+    for (const q of questions) {
+      if (!q.required) continue;
+      const v = answers[q.id];
+      const filled =
+        q.type === "boolean"
+          ? typeof v === "boolean"
+          : typeof v === "string" && v.trim().length > 0;
+      if (!filled) missingIds.add(q.id);
+    }
+    if (missingIds.size > 0) {
+      setMissing(missingIds);
+      setSubmission({
+        status: "error",
+        message: `Please answer the required ${missingIds.size === 1 ? "question" : "questions"} marked with *.`,
+      });
+      // Scroll first invalid field into view.
+      const firstId = Array.from(missingIds)[0];
+      const el = document.querySelector<HTMLElement>(`[data-question-id="${firstId}"]`);
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+    setMissing(new Set());
     setSubmission({ status: "submitting" });
 
     try {
@@ -189,17 +243,26 @@ export function ReviewForm({
         </div>
 
         {questions.map((question) => (
-          <QuestionField
-            key={question.id}
-            onChange={(questionId, nextValue) =>
-              setAnswers((current) => ({
-                ...current,
-                [questionId]: nextValue,
-              }))
-            }
-            question={question}
-            value={answers[question.id]}
-          />
+          <div key={question.id} data-question-id={question.id}>
+            <QuestionField
+              invalid={missing.has(question.id)}
+              onChange={(questionId, nextValue) => {
+                setAnswers((current) => ({
+                  ...current,
+                  [questionId]: nextValue,
+                }));
+                if (missing.has(questionId)) {
+                  setMissing((prev) => {
+                    const next = new Set(prev);
+                    next.delete(questionId);
+                    return next;
+                  });
+                }
+              }}
+              question={question}
+              value={answers[question.id]}
+            />
+          </div>
         ))}
 
         <div className="rounded-[22px] border border-black/10 bg-white p-4">
@@ -252,7 +315,13 @@ export function ReviewForm({
       </div>
 
       {submission.status === "error" ? (
-        <p role="alert" aria-live="assertive" className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{submission.message}</p>
+        <div
+          role="alert"
+          aria-live="assertive"
+          className="mt-6 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700"
+        >
+          {submission.message}
+        </div>
       ) : null}
 
       <button
