@@ -1,4 +1,3 @@
-import { unstable_cache } from "next/cache";
 import { revalidateTag } from "next/cache";
 import { ObjectId } from "mongodb";
 import {
@@ -47,32 +46,32 @@ function normalizeAnswers(
   }, []);
 }
 
-export const getPublicReviewExperience = unstable_cache(
-  async (orgId: string, serviceId: string) => {
-    const organization = await findOrganizationByPublicId(orgId);
+// NOT cached — the return value contains MongoDB ObjectIds which do not
+// survive JSON serialisation (used by unstable_cache). Storing a de-serialised
+// "ObjectId" as organizationId causes review inserts to use plain objects
+// instead of BSON ObjectIds, making every aggregation query return 0 results.
+export async function getPublicReviewExperience(orgId: string, serviceId: string) {
+  const organization = await findOrganizationByPublicId(orgId);
 
-    if (!organization || organization.status === "suspended" || organization.status === "archived") {
-      return null;
-    }
+  if (!organization || organization.status === "suspended" || organization.status === "archived") {
+    return null;
+  }
 
-    const service = await findServiceByPublicIds(organization._id as ObjectId, serviceId);
+  const service = await findServiceByPublicIds(organization._id as ObjectId, serviceId);
 
-    if (!service || service.status !== "active") {
-      return null;
-    }
+  if (!service || service.status !== "active") {
+    return null;
+  }
 
-    const qrCode = await findQrCodeByService(service._id as ObjectId);
+  const qrCode = await findQrCodeByService(service._id as ObjectId);
 
-    return {
-      organization,
-      service,
-      qrCode,
-      reviewUrl: `/r/${orgId}/${serviceId}`,
-    };
-  },
-  ["public-review-experience"],
-  { revalidate: 120 },
-);
+  return {
+    organization,
+    service,
+    qrCode,
+    reviewUrl: `/r/${orgId}/${serviceId}`,
+  };
+}
 
 export async function submitPublicReview(
   input: ReviewSubmissionInput,
@@ -86,6 +85,13 @@ export async function submitPublicReview(
   }
 
   const { organization, service, qrCode } = experience;
+
+  // Reconstruct proper BSON ObjectIds — guards against any caller that might
+  // supply a plain-object _id (e.g. from a JSON cache round-trip).
+  const orgObjectId = new ObjectId(organization._id!.toString());
+  const serviceObjectId = new ObjectId(service._id!.toString());
+  const qrCodeObjectId = qrCode?._id ? new ObjectId(qrCode._id.toString()) : undefined;
+
   const reviewConfig = service.reviewConfig;
   const relevantQuestions =
     parsedInput.ratingValue <= reviewConfig.lowRatingThreshold
@@ -101,9 +107,9 @@ export async function submitPublicReview(
   }
 
   const review: Review = {
-    organizationId: organization._id as ObjectId,
-    serviceId: service._id as ObjectId,
-    qrCodeId: qrCode?._id as ObjectId | undefined,
+    organizationId: orgObjectId,
+    serviceId: serviceObjectId,
+    qrCodeId: qrCodeObjectId,
     submittedAt: new Date(),
     ratingValue: parsedInput.ratingValue,
     ratingType: reviewConfig.ratingType,
@@ -130,7 +136,7 @@ export async function submitPublicReview(
   };
 
   await createReview(review);
-  await incrementOrganizationUsage(organization._id as ObjectId, {
+  await incrementOrganizationUsage(orgObjectId, {
     reviewCount: 1,
     lastReviewAt: new Date(),
   });
