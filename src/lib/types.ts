@@ -203,6 +203,22 @@ export interface QrScanEvent {
   locale?: string;
 }
 
+export type ReviewSubmissionOutcome = "success" | "validation_failed" | "missing_required" | "rate_limited" | "service_not_found" | "invalid_json" | "error";
+
+export interface ReviewSubmissionAttempt {
+  _id?: ObjectId;
+  organizationId?: ObjectId;
+  serviceId?: ObjectId;
+  orgPublicId?: string;
+  servicePublicId?: string;
+  attemptedAt: Date;
+  outcome: ReviewSubmissionOutcome;
+  ratingValue?: number;
+  reason?: string;
+  ipHash?: string;
+  userAgentHash?: string;
+}
+
 export interface PasswordResetToken {
   _id?: ObjectId;
   userId: ObjectId;

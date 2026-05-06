@@ -1,5 +1,5 @@
 import { getCollection } from "@/lib/db/mongodb";
-import type { Organization, PasswordResetToken, QrCodeAsset, QrScanEvent, Review, Service, User } from "@/lib/types";
+import type { Organization, PasswordResetToken, QrCodeAsset, QrScanEvent, Review, ReviewSubmissionAttempt, Service, User } from "@/lib/types";
 
 export async function ensureIndexes() {
   const organizations = await getCollection<Organization>("organizations");
@@ -9,6 +9,7 @@ export async function ensureIndexes() {
   const reviews = await getCollection<Review>("reviews");
   const scans = await getCollection<QrScanEvent>("qr_scans");
   const passwordResets = await getCollection<PasswordResetToken>("password_reset_tokens");
+  const submissionAttempts = await getCollection<ReviewSubmissionAttempt>("review_submission_attempts");
 
   await Promise.all([
     organizations.createIndexes([
@@ -45,6 +46,13 @@ export async function ensureIndexes() {
       { key: { userId: 1, createdAt: -1 } },
       // TTL: auto-purge consumed/expired tokens 24h after expiry
       { key: { expiresAt: 1 }, expireAfterSeconds: 60 * 60 * 24 },
+    ]),
+    submissionAttempts.createIndexes([
+      { key: { organizationId: 1, attemptedAt: -1 } },
+      { key: { organizationId: 1, outcome: 1, attemptedAt: -1 } },
+      // TTL: auto-purge attempt records after 7 days; the dashboard uses the
+      // last 24h window, so this is plenty of headroom for diagnostics.
+      { key: { attemptedAt: 1 }, expireAfterSeconds: 60 * 60 * 24 * 7 },
     ]),
   ]);
 }

@@ -11,16 +11,23 @@ import { aggregateScanMetrics, countScansByOrganizations } from "@/lib/repositor
 import { listServicesByOrganization } from "@/lib/repositories/services";
 import { findUsersByOrganization } from "@/lib/repositories/users";
 import { listRecentAuditLogs } from "@/lib/repositories/audit-logs";
+import {
+  countSubmissionAttemptsByOutcome,
+  listRecentSubmissionAttempts,
+} from "@/lib/repositories/submission-attempts";
 import type { DashboardFilters } from "@/lib/types";
 
 export async function getDashboardSnapshot(organizationId: string, filters: DashboardFilters) {
   const orgObjectId = new ObjectId(organizationId);
-  const [organization, services, metrics, scanMetrics, recentReviews] = await Promise.all([
+  const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const [organization, services, metrics, scanMetrics, recentReviews, submissionAttempts, submissionStats] = await Promise.all([
     findOrganizationById(orgObjectId),
     listServicesByOrganization(orgObjectId),
     aggregateDashboardMetrics(orgObjectId, filters),
     aggregateScanMetrics(orgObjectId, filters),
     listRecentReviewsByOrganization(orgObjectId, filters),
+    listRecentSubmissionAttempts(orgObjectId, 25),
+    countSubmissionAttemptsByOutcome(orgObjectId, since24h),
   ]);
 
   const scanCount = scanMetrics.scanCount || 0;
@@ -70,6 +77,22 @@ export async function getDashboardSnapshot(organizationId: string, filters: Dash
         reviewer: review.customer.profile,
       };
     }),
+    submissionDiagnostics: {
+      stats24h: submissionStats,
+      recentAttempts: submissionAttempts.map((attempt) => {
+        const serviceKey = attempt.serviceId?.toString();
+        const matchedService = services.find((service) => service._id?.toString() === serviceKey);
+        return {
+          id: attempt._id?.toString() || "",
+          attemptedAt: attempt.attemptedAt.toISOString(),
+          attemptedAtRelative: formatDistanceToNow(attempt.attemptedAt, { addSuffix: true }),
+          outcome: attempt.outcome,
+          reason: attempt.reason,
+          ratingValue: attempt.ratingValue,
+          serviceName: matchedService?.name || attempt.servicePublicId,
+        };
+      }),
+    },
   };
 }
 

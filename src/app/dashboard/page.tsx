@@ -6,6 +6,7 @@ import { CreateServiceForm } from "@/components/dashboard/create-service-form";
 import { ServiceActions } from "@/components/dashboard/service-actions";
 import { RatingsDistribution } from "@/components/dashboard/ratings-distribution";
 import { ActivityTrend } from "@/components/dashboard/activity-trend";
+import { SubmissionDiagnostics } from "@/components/dashboard/submission-diagnostics";
 import { NoticeBanner } from "@/components/ui/notice-banner";
 import { requireSession } from "@/lib/auth/guards";
 import { getDashboardSnapshot } from "@/lib/services/dashboard-service";
@@ -51,6 +52,13 @@ export default async function DashboardPage({
         <SectionCard description="How customer ratings are distributed." title="Ratings distribution">
           <RatingsDistribution distribution={snapshot.metrics.distribution || []} maxRating={maxRating} />
         </SectionCard>
+      </div>
+
+      <div className="mt-6">
+        <SubmissionDiagnostics
+          stats24h={snapshot.submissionDiagnostics.stats24h}
+          recentAttempts={snapshot.submissionDiagnostics.recentAttempts}
+        />
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
